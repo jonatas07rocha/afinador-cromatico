@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Afinador Cromático</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation; /* Desativa o zoom por duplo toque em dispositivos móveis */
+        }
+        /* Estilo para a agulha do afinador */
+        #needle {
+            transform-origin: bottom center;
+            transition: transform 0.2s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 text-center space-y-6">
+
+        <!-- Título -->
+        <h1 class="text-3xl font-bold text-teal-400">Afinador Cromático</h1>
+
+        <!-- Mensagem de Status/Instrução -->
+        <div id="status-message" class="h-10 flex items-center justify-center">
+            <p class="text-gray-400">Clique em "Iniciar" para começar</p>
+        </div>
+
+        <!-- Medidor Visual -->
+        <div class="relative w-full h-40 bg-gray-900/50 rounded-lg overflow-hidden flex items-end justify-center">
+            <!-- Linha central de afinação -->
+            <div class="absolute top-0 bottom-0 w-1 bg-teal-500/50" style="left: 50%; transform: translateX(-50%);"></div>
+            
+            <!-- Agulha -->
+            <div id="needle" class="absolute bottom-0 w-1 h-2/3 bg-teal-400 rounded-t-full" style="transform: rotate(0deg);"></div>
+
+            <!-- Marcas de Cents -->
+            <div class="absolute bottom-4 text-xs text-gray-400" style="left: 50%; transform: translateX(-50%);">0</div>
+            <div class="absolute bottom-4 text-xs text-gray-500" style="left: 25%; transform: translateX(-50%);">-50</div>
+            <div class="absolute bottom-4 text-xs text-gray-500" style="left: 75%; transform: translateX(-50%);">+50</div>
+        </div>
+
+        <!-- Display da Nota -->
+        <div class="flex items-center justify-center space-x-2">
+            <div id="note-name" class="text-8xl font-black text-white tracking-tighter">--</div>
+            <div class="flex flex-col text-left">
+                <div id="note-sharp-flat" class="text-2xl font-bold text-teal-400 h-8"></div>
+                <div id="note-octave" class="text-2xl font-bold text-gray-500"></div>
+            </div>
+        </div>
+        
+        <!-- Display da Frequência -->
+        <div id="frequency-display" class="text-lg text-gray-400 h-6">Frequência: --- Hz</div>
+
+        <!-- Botão de Controle -->
+        <button id="toggle-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold py-4 px-4 rounded-xl transition-all duration-200 ease-in-out transform hover:scale-105 shadow-lg">
+            Iniciar
+        </button>
+    </div>
+
+    <script>
+        // --- Elementos do DOM ---
+        const noteNameEl = document.getElementById('note-name');
+        const noteSharpFlatEl = document.getElementById('note-sharp-flat');
+        const noteOctaveEl = document.getElementById('note-octave');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const needle = document.getElementById('needle');
+        const statusMessageEl = document.getElementById('status-message');
+        const frequencyDisplayEl = document.getElementById('frequency-display');
+
+        // --- Variáveis de Áudio e Estado ---
+        let audioContext;
+        let analyser;
+        let mediaStreamSource;
+        let buffer;
+        let isRunning = false;
+        // ALTERAÇÃO: Nomes das notas alterados para o padrão de solfejo.
+        const noteStrings = ["Dó", "Dó♯", "Ré", "Ré♯", "Mi", "Fá", "Fá♯", "Sol", "Sol♯", "Lá", "Lá♯", "Si"];
+        
+        // --- Funções Principais ---
+
+        /**
+         * Inicia ou para o afinador.
+         */
+        async function toggleTuner() {
+            if (isRunning) {
+                stopTuner();
+            } else {
+                await startTuner();
+            }
+        }
+
+        /**
+         * Pede permissão de microfone e inicia a análise de áudio.
+         */
+        async function startTuner() {
+            try {
+                // Inicializa o AudioContext (deve ser feito após um gesto do utilizador)
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Pede acesso ao microfone
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Cria nós de áudio
+                mediaStreamSource = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048; // Tamanho da FFT, bom para precisão de frequência
+                buffer = new Float32Array(analyser.fftSize);
+                
+                // Conecta os nós: microfone -> analisador
+                mediaStreamSource.connect(analyser);
+
+                isRunning = true;
+                updateUIOnStart();
+                
+                // Inicia o loop de análise
+                analysePitch();
+            } catch (err) {
+                console.error('Erro ao aceder ao microfone:', err);
+                statusMessageEl.textContent = 'Acesso ao microfone negado.';
+                statusMessageEl.classList.add('text-red-400');
+            }
+        }
+
+        /**
+         * Para a análise de áudio e redefine o estado.
+         */
+        function stopTuner() {
+            if (mediaStreamSource) {
+                mediaStreamSource.mediaStream.getTracks().forEach(track => track.stop());
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+            isRunning = false;
+            updateUIOnStop();
+        }
+
+        /**
+         * Loop de análise que chama a si mesmo para atualizações contínuas.
+         */
+        function analysePitch() {
+            if (!isRunning) return;
+
+            analyser.getFloatTimeDomainData(buffer);
+            const fundamentalFreq = getFundamentalFrequency(buffer, audioContext.sampleRate);
+
+            if (fundamentalFreq > 0) {
+                const noteData = getNoteData(fundamentalFreq);
+                updateUINote(noteData, fundamentalFreq);
+            } else {
+                resetUINote();
+            }
+            
+            // Continua o loop
+            requestAnimationFrame(analysePitch);
+        }
+
+        /**
+         * Algoritmo de Autocorrelação para encontrar a frequência fundamental.
+         * @param {Float32Array} buffer - O buffer de dados de áudio.
+         * @param {number} sampleRate - A taxa de amostragem do AudioContext.
+         * @returns {number} A frequência fundamental detectada em Hz, ou -1 se não encontrada.
+         */
+        function getFundamentalFrequency(buffer, sampleRate) {
+            // Encontrar o valor de correlação para cada deslocamento
+            const correlations = new Array(buffer.length).fill(0);
+            for (let i = 0; i < buffer.length; i++) {
+                for (let j = 0; j < buffer.length - i; j++) {
+                    correlations[i] += buffer[j] * buffer[j + i];
+                }
+            }
+
+            // Encontrar o primeiro pico local após o primeiro cruzamento de zero
+            let firstZeroCrossing = -1;
+            for (let i = 1; i < correlations.length; i++) {
+                if (correlations[i - 1] > 0 && correlations[i] <= 0) {
+                    firstZeroCrossing = i;
+                    break;
+                }
+            }
+
+            if (firstZeroCrossing === -1) return -1;
+
+            let peakIndex = -1;
+            let maxCorrelation = 0;
+            for (let i = firstZeroCrossing; i < correlations.length; i++) {
+                if (correlations[i] > maxCorrelation) {
+                    maxCorrelation = correlations[i];
+                    peakIndex = i;
+                }
+            }
+            
+            if (peakIndex === -1) return -1;
+
+            // Interpolação parabólica para maior precisão do pico
+            const alpha = correlations[peakIndex - 1];
+            const beta = correlations[peakIndex];
+            const gamma = correlations[peakIndex + 1];
+            const peakShift = (alpha - gamma) / (2 * (alpha - 2 * beta + gamma));
+            
+            return sampleRate / (peakIndex + peakShift);
+        }
+
+        /**
+         * Converte uma frequência em dados de nota (nome, oitava, desvio).
+         * @param {number} frequency - A frequência em Hz.
+         * @returns {object} Um objeto com os dados da nota.
+         */
+        function getNoteData(frequency) {
+            const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
+            const roundedNoteNum = Math.round(noteNum) + 69;
+            const idealFrequency = 440 * Math.pow(2, (roundedNoteNum - 69) / 12);
+            const cents = 1200 * (Math.log(frequency / idealFrequency) / Math.log(2));
+            
+            return {
+                name: noteStrings[roundedNoteNum % 12],
+                octave: Math.floor(roundedNoteNum / 12) - 1,
+                cents: cents
+            };
+        }
+
+        // --- Funções de UI ---
+
+        function updateUIOnStart() {
+            toggleBtn.textContent = 'Parar';
+            toggleBtn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
+            toggleBtn.classList.add('bg-red-500', 'hover:bg-red-600');
+            statusMessageEl.textContent = 'A ouvir...';
+            statusMessageEl.classList.remove('text-red-400');
+        }
+
+        function updateUIOnStop() {
+            toggleBtn.textContent = 'Iniciar';
+            toggleBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+            toggleBtn.classList.add('bg-teal-500', 'hover:bg-teal-600');
+            statusMessageEl.textContent = 'Clique em "Iniciar" para começar';
+            resetUINote();
+        }
+        
+        function updateUINote(noteData, frequency) {
+            // Atualiza o nome da nota e a oitava
+            const noteParts = noteData.name.split('♯');
+            noteNameEl.textContent = noteParts[0];
+            noteSharpFlatEl.textContent = noteParts.length > 1 ? '♯' : '';
+            noteOctaveEl.textContent = noteData.octave;
+            frequencyDisplayEl.textContent = `Frequência: ${frequency.toFixed(2)} Hz`;
+
+            // Atualiza a agulha e a cor
+            // Limita o desvio de cents a -50 e +50 para o medidor
+            const clampedCents = Math.max(-50, Math.min(50, noteData.cents));
+            const rotation = (clampedCents / 50) * 60; // Mapeia para um ângulo de -60 a +60 graus
+            needle.style.transform = `rotate(${rotation}deg)`;
+
+            // Muda a cor com base na proximidade da afinação
+            if (Math.abs(clampedCents) < 5) { // Limite para "afinada"
+                needle.style.backgroundColor = '#2dd4bf'; // teal-400
+                noteNameEl.style.color = '#2dd4bf';
+            } else {
+                needle.style.backgroundColor = '#f87171'; // red-400
+                noteNameEl.style.color = '#f87171';
+            }
+        }
+
+        function resetUINote() {
+            noteNameEl.textContent = '--';
+            noteSharpFlatEl.textContent = '';
+            noteOctaveEl.textContent = '';
+            needle.style.transform = 'rotate(0deg)';
+            needle.style.backgroundColor = '#4a5568'; // gray-700
+            noteNameEl.style.color = '#ffffff'; // white
+            frequencyDisplayEl.textContent = 'Frequência: --- Hz';
+        }
+
+        // --- Event Listener ---
+        toggleBtn.addEventListener('click', toggleTuner);
+    </script>
+</body>
+</html>
+
