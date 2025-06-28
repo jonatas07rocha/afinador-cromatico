@@ -1,6 +1,6 @@
 # 🎵 Afinador Cromático
 
-![Screenshot da Aplicação](https://i.imgur.com/link-para-sua-screenshot.png)
+![Screenshot da Aplicação](https://github.com/jonatas07rocha/afinador-cromatico/blob/main/screenshot.png)
 *Substitua o link acima por um screenshot da sua aplicação em funcionamento.*
 
 Um afinador cromático simples, preciso e de código aberto para músicos. Desenvolvido para ser leve e com uma interface limpa, ideal para afinar o seu instrumento de forma rápida e eficiente.
