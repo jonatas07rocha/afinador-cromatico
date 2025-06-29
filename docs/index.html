@@ -10,14 +10,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎻</text></svg>">
     <style>
-        /* Define variáveis CSS para as cores do tema */
-        :root {
-            --color-primary: #2dd4bf; /* teal-400 */
-            --color-hover: #14b8a6; /* teal-500 */
-            --color-accent: #2dd4bf; /* teal-400 */
-            --color-bg-button: #2dd4bf; /* teal-400 */
-        }
-
         body {
             font-family: 'Inter', sans-serif;
             touch-action: manipulation; /* Desativa o zoom por duplo toque em dispositivos móveis */
@@ -26,54 +18,29 @@
         #needle {
             transform-origin: bottom center;
             transition: transform 0.2s ease-out;
-            background-color: var(--color-accent); /* Usa a cor do tema */
         }
         /* Estilo para corda ativa/sugerida */
         .string-button.active {
-            ring: 4px solid var(--color-accent); /* Usará a cor do tema */
-        }
-        /* Estilo para corda afinada */
-        .string-button.tuned {
-            @apply bg-green-600 hover:bg-green-700 text-white;
+            /* A cor do anel será definida dinamicamente via JS */
+            @apply ring-4;
         }
         /* Estilo para o volume meter */
         #volume-meter-bar {
             transition: width 0.1s ease-out;
-            background-color: var(--color-accent); /* Volume meter bar usa a cor do tema */
         }
         /* Estilo para o modal */
         .modal-overlay {
             background-color: rgba(0, 0, 0, 0.7);
         }
-
-        /* Classes auxiliares para aplicar cores do tema via variáveis CSS */
-        .theme-color-primary { color: var(--color-primary); }
-        .theme-bg-primary { background-color: var(--color-primary); }
-        .theme-hover-primary:hover { background-color: var(--color-hover); }
-
-        .theme-color-accent { color: var(--color-accent); }
-        .theme-bg-accent { background-color: var(--color-accent); }
-        .theme-hover-accent:hover { color: var(--color-accent); } /* Para ícones, por exemplo */
-
-        .theme-bg-button { background-color: var(--color-bg-button); }
-        .theme-hover-bg-button:hover { background-color: var(--color-hover); }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
 
-    <div id="app-container" class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 text-center space-y-6 relative">
+    <div id="app-container" class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 text-center space-y-6">
 
-        <h1 class="text-3xl font-bold theme-color-accent">Afinador de Violino</h1>
+        <h1 class="text-3xl font-bold text-teal-400">Afinador de Violino</h1>
 
-        <!-- Seção de Temas -->
-        <div class="flex justify-center items-center space-x-3 text-sm">
-            <span class="text-gray-400">Tema:</span>
-            <div class="flex space-x-2">
-                <button data-theme="teal" class="theme-selector w-6 h-6 rounded-full bg-teal-500 ring-2 ring-transparent hover:ring-white transition-all duration-150" title="Tema Verde-Azulado"></button>
-                <button data-theme="blue" class="theme-selector w-6 h-6 rounded-full bg-blue-500 ring-2 ring-transparent hover:ring-white transition-all duration-150" title="Tema Azul"></button>
-                <button data-theme="purple" class="theme-selector w-6 h-6 rounded-full bg-purple-500 ring-2 ring-transparent hover:ring-white transition-all duration-150" title="Tema Roxo"></button>
-            </div>
-        </div>
+        <!-- Seção de Temas Removida -->
 
         <div id="status-message" class="h-10 flex items-center justify-center">
             <p class="text-gray-400">Clique em "Iniciar" para começar</p>
@@ -81,46 +48,52 @@
 
         <div class="relative w-full h-40 bg-gray-900/50 rounded-lg overflow-hidden flex items-end justify-center">
             <!-- Linha central -->
-            <div class="absolute top-0 bottom-0 w-1 theme-bg-accent/50" style="left: 50%; transform: translateX(-50%);"></div>
+            <div id="center-line" class="absolute top-0 bottom-0 w-1 bg-gray-500/50" style="left: 50%; transform: translateX(-50%);"></div>
             
             <!-- Agulha do afinador -->
-            <div id="needle" class="absolute bottom-0 w-1 h-2/3 rounded-t-full" style="transform: rotate(0deg);"></div>
+            <div id="needle" class="absolute bottom-0 w-1 h-2/3 bg-gray-400 rounded-t-full" style="transform: rotate(0deg);"></div>
 
             <!-- Indicadores de cents -->
             <div class="absolute bottom-4 text-xs text-gray-400" style="left: 50%; transform: translateX(-50%);">0</div>
             <div class="absolute bottom-4 text-xs text-gray-500" style="left: 25%; transform: translateX(-50%);">-50</div>
             <div class="absolute bottom-4 text-xs text-gray-500" style="left: 75%; transform: translateX(-50%);">+50</div>
 
-            <!-- Volume Meter (altura reduzida para ser mais sutil) -->
-            <div class="absolute top-2 left-2 right-2 h-3 bg-gray-700 rounded-full overflow-hidden">
-                <div id="volume-meter-bar" class="h-full rounded-full" style="width: 0%;"></div>
+            <!-- Volume Meter -->
+            <div class="absolute top-2 left-2 right-2 h-4 bg-gray-700 rounded-full overflow-hidden">
+                <div id="volume-meter-bar" class="h-full bg-blue-400 rounded-full" style="width: 0%;"></div>
             </div>
         </div>
 
         <div class="flex items-center justify-center space-x-2">
             <div id="note-name" class="text-8xl font-black text-white tracking-tighter">--</div>
             <div class="flex flex-col text-left">
-                <div id="note-sharp-flat" class="text-2xl font-bold theme-color-accent h-8"></div>
+                <div id="note-sharp-flat" class="text-2xl font-bold text-gray-400 h-8"></div>
                 <div id="note-octave" class="text-2xl font-bold text-gray-500"></div>
             </div>
         </div>
         
+        <div id="frequency-display" class="text-lg text-gray-400 h-6">Frequência: --- Hz</div>
+
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-            <!-- Botões de corda sem os botões de reprodução -->
-            <button id="string-G3" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">G3 (Sol)</button>
-            <button id="string-D4" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">D4 (Ré)</button>
-            <button id="string-A4" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">A4 (Lá)</button>
-            <button id="string-E5" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">E5 (Mi)</button>
+            <!-- Botões das cordas com IDs para fácil acesso -->
+            <div class="flex flex-col items-center">
+                <button id="string-G3" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">G3 (Sol)</button>
+            </div>
+            <div class="flex flex-col items-center">
+                <button id="string-D4" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">D4 (Ré)</button>
+            </div>
+            <div class="flex flex-col items-center">
+                <button id="string-A4" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">A4 (Lá)</button>
+            </div>
+            <div class="flex flex-col items-center">
+                <button id="string-E5" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">E5 (Mi)</button>
+            </div>
         </div>
 
-        <!-- Frequência movida para baixo e com texto menor -->
-        <div id="frequency-display" class="text-md text-gray-500 h-6 mt-4">Frequência: --- Hz</div>
-
-        <button id="toggle-btn" class="w-full theme-bg-primary theme-hover-primary text-gray-900 font-bold py-4 px-4 rounded-xl transition-all duration-200 ease-in-out transform hover:scale-105 shadow-lg">
+        <button id="toggle-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold py-4 px-4 rounded-xl transition-all duration-200 ease-in-out transform hover:scale-105 shadow-lg">
             Iniciar
         </button>
 
-        <!-- Botão de Ajuda movido para baixo do botão Iniciar -->
         <button id="help-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 ease-in-out transform hover:scale-105 shadow-lg mt-3">
             Ajuda
         </button>
@@ -129,7 +102,7 @@
     <!-- Modal de Ajuda -->
     <div id="help-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 modal-overlay">
         <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-lg relative text-left space-y-4">
-            <h2 class="text-2xl font-bold theme-color-accent mb-4">Como Usar o Afinador</h2>
+            <h2 class="text-2xl font-bold text-blue-400 mb-4">Como Usar o Afinador</h2>
             <p class="text-gray-300">
                 Este afinador de violino foi projetado para ajudá-lo a afinar seu instrumento de forma precisa e intuitiva.
             </p>
@@ -144,24 +117,21 @@
                     <strong>Indicador de Afinação:</strong> A agulha central indica o quão perto você está da afinação ideal.
                     <ul class="list-circle list-inside ml-4 mt-1">
                         <li>
-                            <span class="text-green-400">Verde:</span> Corda afinada (dentro de +/- 10 cents).
+                            <span class="text-green-400">Verde:</span> Corda afinada (dentro de +/- 5 cents).
                         </li>
                         <li>
                             <span class="text-red-400">Vermelho:</span> Corda fora de afinação ou nota incorreta.
                         </li>
                         <li>
-                            <span class="theme-color-accent">Cor do Tema:</span> Perto da afinação, mas ainda precisa de ajuste.
+                            <span class="text-gray-400">Cinza:</span> Perto da afinação, mas ainda precisa de ajuste.
                         </li>
                     </ul>
                 </li>
                 <li>
                     <strong>Volume do Microfone:</strong> A barra azul no topo do afinador mostra o nível de volume captado pelo microfone.
                 </li>
-                <li>
-                    <strong>Temas:</strong> Personalize a cor do afinador clicando nas bolinhas de cor acima do título.
-                </li>
             </ul>
-            <button id="close-modal-btn" class="w-full theme-bg-button theme-hover-bg-button text-gray-900 font-bold py-3 px-4 rounded-xl transition-all duration-200 ease-in-out shadow-lg mt-4">
+            <button id="close-modal-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-gray-900 font-bold py-3 px-4 rounded-xl transition-all duration-200 ease-in-out shadow-lg mt-4">
                 Entendi
             </button>
         </div>
@@ -184,12 +154,11 @@
             'E5': document.getElementById('string-E5')
         };
         const allStringButtons = document.querySelectorAll('.string-button');
-        // Removido: const playNoteButtons = document.querySelectorAll('.play-note-btn');
         const volumeMeterBar = document.getElementById('volume-meter-bar');
-        const themeSelectors = document.querySelectorAll('.theme-selector');
         const helpBtn = document.getElementById('help-btn');
         const helpModal = document.getElementById('help-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
+        const centerLine = document.getElementById('center-line');
 
         // --- Variáveis de Áudio e Estado ---
         let audioContext;
@@ -200,40 +169,27 @@
         const noteStrings = ["Dó", "Dó♯", "Ré", "Ré♯", "Mi", "Fá", "Fá♯", "Sol", "Sol♯", "Lá", "Lá♯", "Si"];
         
         const violinStrings = {
-            'G3': { name: 'Sol', octave: 3, frequency: 195.998 }, // Sol3
-            'D4': { name: 'Ré', octave: 4, frequency: 293.665 }, // Ré4
-            'A4': { name: 'Lá', octave: 4, frequency: 440.000 }, // Lá4
-            'E5': { name: 'Mi', octave: 5, frequency: 659.255 }  // Mi5
+            'G3': { name: 'Sol', octave: 3, frequency: 195.998 },
+            'D4': { name: 'Ré', octave: 4, frequency: 293.665 },
+            'A4': { name: 'Lá', octave: 4, frequency: 440.000 },
+            'E5': { name: 'Mi', octave: 5, frequency: 659.255 }
         };
         
         const tuningSequence = ['G3', 'D4', 'A4', 'E5'];
         let currentStringIndex = 0;
         let stringTunedState = { 'G3': false, 'D4': false, 'A4': false, 'E5': false };
         let tuningComplete = false;
-        // Removido: let currentOscillator = null; // Para controlar o som de referência
 
-        // --- Configurações de Tema ---
-        const themes = {
-            'teal': {
-                primary: 'teal-500',
-                hover: 'teal-600',
-                accent: 'teal-400',
-                bg: 'teal-500' // Para o botão do modal
-            },
-            'blue': {
-                primary: 'blue-500',
-                hover: 'blue-600',
-                accent: 'blue-400',
-                bg: 'blue-500'
-            },
-            'purple': {
-                primary: 'purple-500',
-                hover: 'purple-600',
-                accent: 'purple-400',
-                bg: 'purple-500'
-            }
+        const CENTS_HISTORY_SIZE = 5;
+        let centsHistory = [];
+
+        // Cores específicas para cada corda
+        const stringColors = {
+            'G3': { base: 'red-500', accent: 'red-400' },
+            'D4': { base: 'yellow-500', accent: 'yellow-400' },
+            'A4': { base: 'blue-500', accent: 'blue-400' },
+            'E5': { base: 'green-500', accent: 'green-400' }
         };
-        let activeTheme = localStorage.getItem('violinTunerTheme') || 'teal'; // Tema padrão
 
         // --- Funções Auxiliares de Áudio ---
         function playTunedSound() {
@@ -244,20 +200,17 @@
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
 
-                oscillator.type = 'sine'; // Onda senoidal para um som suave
-                oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); // Volume
-
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                
                 oscillator.start(audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5); // Fade out
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5); 
                 oscillator.stop(audioContext.currentTime + 0.5);
             }
         }
 
-        // Removido: function playReferenceNote(frequency) { ... }
-
         // --- Funções Principais ---
-
         async function toggleTuner() {
             if (isRunning) {
                 stopTuner();
@@ -268,9 +221,18 @@
 
         async function startTuner() {
             try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext && audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                } else if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 
+                if (!stream.active) {
+                    throw new Error('O stream do microfone não está ativo.');
+                }
+
                 mediaStreamSource = audioContext.createMediaStreamSource(stream);
                 analyser = audioContext.createAnalyser();
                 analyser.fftSize = 2048;
@@ -280,12 +242,24 @@
 
                 isRunning = true;
                 updateUIOnStart();
-                initializeTuningSequence(); // Inicia a sequência de afinação
+                initializeTuningSequence();
                 analysePitch();
+                console.log('Afinador iniciado. Contexto de áudio:', audioContext.state);
             } catch (err) {
                 console.error('Erro ao aceder ao microfone:', err);
-                statusMessageEl.textContent = 'Acesso ao microfone negado.';
+                let errorMessage = 'Erro ao aceder ao microfone.';
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    errorMessage = 'Acesso ao microfone negado. Por favor, permita o acesso ao microfone nas configurações do seu navegador.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage = 'Nenhum microfone encontrado. Verifique se um microfone está conectado e funcionando.';
+                } else if (err.name === 'NotReadableError') {
+                    errorMessage = 'O microfone está a ser usado por outra aplicação. Por favor, feche-a e tente novamente.';
+                }
+                statusMessageEl.textContent = errorMessage;
                 statusMessageEl.classList.add('text-red-400');
+                toggleBtn.textContent = 'Iniciar';
+                toggleBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                toggleBtn.classList.add('bg-teal-500', 'hover:bg-teal-600');
             }
         }
 
@@ -294,83 +268,101 @@
                 mediaStreamSource.mediaStream.getTracks().forEach(track => track.stop());
             }
             if (audioContext) {
-                audioContext.close();
-                audioContext = null; // Limpa o contexto de áudio
+                audioContext.suspend();
             }
-            // Removido: if (currentOscillator) { ... }
             isRunning = false;
             updateUIOnStop();
+            centsHistory = [];
+            console.log('Afinador parado. Contexto de áudio:', audioContext ? audioContext.state : 'fechado');
         }
 
         function analysePitch() {
-            if (!isRunning) return;
+            if (!isRunning || !analyser || !audioContext || audioContext.state !== 'running') return;
 
             analyser.getFloatTimeDomainData(buffer);
-            const fundamentalFreq = getFundamentalFrequency(buffer, audioContext.sampleRate);
 
-            // Calcula o volume RMS para o volume meter
             let sumSquares = 0;
             for (let i = 0; i < buffer.length; i++) {
                 sumSquares += buffer[i] * buffer[i];
             }
             const rms = Math.sqrt(sumSquares / buffer.length);
-            // Mapeia RMS para uma largura de 0-100%
-            const volumeWidth = Math.min(100, rms * 500); // Ajuste o multiplicador conforme necessário
+            
+            const volumeWidth = Math.min(100, rms * 500);
             volumeMeterBar.style.width = `${volumeWidth}%`;
+
+            const fundamentalFreq = getPitchAutoCorrelation(buffer, audioContext.sampleRate);
 
             if (fundamentalFreq > 0) {
                 const noteData = getNoteData(fundamentalFreq);
-                updateUINote(noteData, fundamentalFreq);
+                
+                centsHistory.push(noteData.cents);
+                if (centsHistory.length > CENTS_HISTORY_SIZE) {
+                    centsHistory.shift();
+                }
+                const averagedCents = centsHistory.reduce((a, b) => a + b, 0) / centsHistory.length;
+
+                updateUINote({ ...noteData, cents: averagedCents }, fundamentalFreq);
             } else {
-                resetUINoteDisplay(); // Apenas reseta o display da nota, não o estado da UI do afinador
+                resetUINoteDisplay();
+                statusMessageEl.textContent = 'Nenhuma nota detectada. Toque uma corda.';
+                statusMessageEl.classList.remove('text-green-400', 'text-blue-400', 'text-red-400', 'text-yellow-400');
+                statusMessageEl.classList.add('text-red-400');
+                centsHistory = [];
             }
             
             requestAnimationFrame(analysePitch);
         }
 
-        function getFundamentalFrequency(buffer, sampleRate) {
-            const correlations = new Array(buffer.length).fill(0);
-            for (let i = 0; i < buffer.length; i++) {
-                for (let j = 0; j < buffer.length - i; j++) {
-                    correlations[i] += buffer[j] * buffer[j + i];
+        function getPitchAutoCorrelation(buffer, sampleRate) {
+            const minFreq = 80;
+            const maxFreq = 800;
+            const minPeriod = sampleRate / maxFreq;
+            const maxPeriod = sampleRate / minFreq;
+
+            const n = buffer.length;
+            const autoCorrelation = new Float32Array(n);
+
+            for (let lag = 0; lag < n; lag++) {
+                let sum = 0;
+                for (let i = 0; i < n - lag; i++) {
+                    sum += buffer[i] * buffer[i + lag];
                 }
+                autoCorrelation[lag] = sum;
             }
 
-            // Encontra o pico de correlação após o primeiro cruzamento zero
-            let firstZeroCrossing = -1;
-            for (let i = 1; i < correlations.length; i++) {
-                if (correlations[i - 1] > 0 && correlations[i] <= 0) {
-                    firstZeroCrossing = i;
-                    break;
-                }
-            }
-
-            if (firstZeroCrossing === -1) return -1;
-
+            let maxVal = -1;
             let peakIndex = -1;
-            let maxCorrelation = 0;
-            // Começa a procurar o pico a partir do primeiro cruzamento zero
-            for (let i = firstZeroCrossing; i < correlations.length; i++) {
-                if (correlations[i] > maxCorrelation) {
-                    maxCorrelation = correlations[i];
+
+            for (let i = Math.floor(minPeriod); i < Math.min(n, Math.ceil(maxPeriod)); i++) {
+                if (autoCorrelation[i] > maxVal) {
+                    maxVal = autoCorrelation[i];
                     peakIndex = i;
                 }
             }
-            
-            // Adiciona um limiar para a correlação máxima para filtrar ruído
-            // Se o pico de correlação for muito baixo, provavelmente é ruído
-            if (maxCorrelation < 0.1) { // Ajuste este valor conforme necessário (0.1 é um bom ponto de partida)
+
+            if (peakIndex <= 0) {
                 return -1;
             }
 
-            if (peakIndex === -1) return -1;
+            let x0 = peakIndex - 1;
+            let x1 = peakIndex;
+            let x2 = peakIndex + 1;
 
-            const alpha = correlations[peakIndex - 1];
-            const beta = correlations[peakIndex];
-            const gamma = correlations[peakIndex + 1];
-            const peakShift = (alpha - gamma) / (2 * (alpha - 2 * beta + gamma));
-            
-            return sampleRate / (peakIndex + peakShift);
+            if (x0 < 0 || x2 >= n) {
+                return sampleRate / peakIndex;
+            }
+
+            let s0 = autoCorrelation[x0];
+            let s1 = autoCorrelation[x1];
+            let s2 = autoCorrelation[x2];
+
+            let shift = 0.5 * (s0 - s2) / (s0 - 2 * s1 + s2);
+            let finalIndex = x1 + shift;
+
+            if (finalIndex > 0) {
+                return sampleRate / finalIndex;
+            }
+            return -1;
         }
 
         function getNoteData(frequency) {
@@ -390,8 +382,7 @@
 
         function updateUIOnStart() {
             toggleBtn.textContent = 'Parar';
-            // Remove classes de tema e adiciona vermelho
-            toggleBtn.classList.remove('theme-bg-primary', 'theme-hover-primary');
+            toggleBtn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
             toggleBtn.classList.add('bg-red-500', 'hover:bg-red-600');
             statusMessageEl.textContent = 'A ouvir...';
             statusMessageEl.classList.remove('text-red-400');
@@ -400,15 +391,14 @@
 
         function updateUIOnStop() {
             toggleBtn.textContent = 'Iniciar';
-            // Remove vermelho e adiciona classes de tema
             toggleBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
-            toggleBtn.classList.add('theme-bg-primary', 'theme-hover-primary');
+            toggleBtn.classList.add('bg-teal-500', 'hover:bg-teal-600');
             statusMessageEl.textContent = 'Clique em "Iniciar" para começar';
             resetUINoteDisplay();
-            resetStringButtons();
-            currentStringIndex = 0; // Reseta para a primeira corda
+            resetStringButtons(); // Reseta completamente os botões ao parar
+            currentStringIndex = 0;
             tuningComplete = false;
-            volumeMeterBar.style.width = '0%'; // Reseta o volume meter
+            volumeMeterBar.style.width = '0%';
         }
 
         function resetUINoteDisplay() {
@@ -419,66 +409,78 @@
             needle.style.backgroundColor = '#4a5568'; // gray-700
             noteNameEl.style.color = '#ffffff'; // white
             frequencyDisplayEl.textContent = 'Frequência: --- Hz';
+            centerLine.classList.remove('bg-red-500/50', 'bg-yellow-500/50', 'bg-blue-500/50', 'bg-green-500/50');
+            centerLine.classList.add('bg-gray-500/50');
         }
 
+        /**
+         * Reseta o estado visual de todos os botões das cordas.
+         * Agora, as cordas afinadas permanecem com sua cor correspondente.
+         */
         function resetStringButtons() {
             allStringButtons.forEach(button => {
-                button.classList.remove('active', 'tuned', 'bg-green-600', 'hover:bg-green-700', 'text-white');
-                button.classList.add('bg-gray-700', 'hover:bg-gray-600', 'text-white');
+                button.classList.remove('active'); // Sempre remove 'active'
+                // Remove todas as classes de anel de cor
+                button.classList.remove('ring-red-400', 'ring-yellow-400', 'ring-blue-400', 'ring-green-400'); 
+                
+                const stringKey = Object.keys(stringButtons).find(key => stringButtons[key] === button);
+                const currentColor = stringColors[stringKey] ? stringColors[stringKey].base : 'gray-700';
+
+                // Se a corda NÃO estiver afinada, reseta para o estilo padrão cinza
+                if (!button.classList.contains('tuned')) {
+                    button.classList.remove('bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'); // Remove cores específicas
+                    button.classList.add('bg-gray-700', 'hover:bg-gray-600', 'text-white');
+                } else {
+                    // Se a corda JÁ estiver afinada, garante que ela mantenha a cor base correspondente
+                    button.classList.remove('bg-gray-700', 'hover:bg-gray-600'); // Remove cinza
+                    button.classList.add(`bg-${currentColor}`); // Adiciona a cor base da corda
+                    button.classList.add('text-white'); // Garante texto branco
+                }
             });
-            stringTunedState = { 'G3': false, 'D4': false, 'A4': false, 'E5': false }; // Reseta o estado de afinação
         }
 
         function initializeTuningSequence() {
-            resetStringButtons(); // Garante que todos os botões estão resetados
+            stringTunedState = { 'G3': false, 'D4': false, 'A4': false, 'E5': false };
+            resetStringButtons();
             currentStringIndex = 0;
             tuningComplete = false;
             highlightCurrentString();
         }
 
         function highlightCurrentString() {
-            allStringButtons.forEach(button => button.classList.remove('active'));
+            resetStringButtons(); // Remove o destaque 'active' das cordas anteriores
+
             if (currentStringIndex < tuningSequence.length) {
                 const currentStringKey = tuningSequence[currentStringIndex];
+                const currentColorAccent = stringColors[currentStringKey].accent;
+
                 stringButtons[currentStringKey].classList.add('active');
+                stringButtons[currentStringKey].classList.add(`ring-${currentColorAccent}`);
+
                 statusMessageEl.textContent = `Afine a corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} (${stringButtons[currentStringKey].textContent.split(' ')[1].replace(/[()]/g, '')})`;
-                statusMessageEl.classList.remove('text-red-400');
-                statusMessageEl.classList.add('theme-color-accent'); // Usa a cor do tema
+                statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
+                statusMessageEl.classList.add(`text-${currentColorAccent}`);
+
+                centerLine.classList.remove('bg-red-500/50', 'bg-yellow-500/50', 'bg-blue-500/50', 'bg-green-500/50', 'bg-gray-500/50');
+                centerLine.classList.add(`bg-${currentColorAccent}/50`);
+
             } else {
                 statusMessageEl.textContent = 'Violino Afinadíssimo! 🎉';
-                statusMessageEl.classList.remove('theme-color-accent', 'text-red-400');
+                statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
                 statusMessageEl.classList.add('text-green-400');
                 tuningComplete = true;
-                // Não chama stopTuner aqui para permitir o modo cromático após a afinação
+                centerLine.classList.remove('bg-red-500/50', 'bg-yellow-500/50', 'bg-blue-500/50', 'bg-green-500/50', 'bg-gray-500/50');
+                centerLine.classList.add('bg-green-500/50');
             }
         }
         
         function updateUINote(noteData, frequency) {
-            // Se a afinação já está completa, apenas exibe a nota e frequência
-            if (tuningComplete) {
-                noteNameEl.textContent = noteData.name.split('♯')[0];
-                noteSharpFlatEl.textContent = noteData.name.split('♯').length > 1 ? '♯' : '';
-                noteOctaveEl.textContent = noteData.octave;
-                frequencyDisplayEl.textContent = `Frequência: ${frequency.toFixed(2)} Hz`;
-                const clampedCents = Math.max(-50, Math.min(50, noteData.cents));
-                const rotation = (clampedCents / 50) * 60;
-                needle.style.transform = `rotate(${rotation}deg)`;
-                // Aumenta a tolerância para "afinada" para +/- 10 cents
-                if (Math.abs(clampedCents) < 10) { 
-                    needle.style.backgroundColor = 'var(--color-accent)'; // Usa a variável CSS
-                    noteNameEl.style.color = 'var(--color-accent)';
-                } else {
-                    needle.style.backgroundColor = '#f87171'; // red-400
-                    noteNameEl.style.color = '#f87171';
-                }
-                return; 
-            }
-
-            // Lógica de afinação sequencial
             const currentStringKey = tuningSequence[currentStringIndex];
             const targetStringData = violinStrings[currentStringKey];
+            const currentStringColors = stringColors[currentStringKey];
+            const currentAccentColor = currentStringColors ? currentStringColors.accent : 'gray-400';
+            const currentBaseColor = currentStringColors ? currentStringColors.base : 'gray-700';
 
-            // Atualiza o display da nota geral
             noteNameEl.textContent = noteData.name.split('♯')[0];
             noteSharpFlatEl.textContent = noteData.name.split('♯').length > 1 ? '♯' : '';
             noteOctaveEl.textContent = noteData.octave;
@@ -488,76 +490,55 @@
             const rotation = (clampedCents / 50) * 60;
             needle.style.transform = `rotate(${rotation}deg)`;
 
-            // Verifica se a nota detectada é a corda que deve ser afinada AGORA
-            if (noteData.name === targetStringData.name && noteData.octave === targetStringData.octave) {
-                // Aumenta a tolerância para "afinada" para +/- 10 cents
-                if (Math.abs(clampedCents) < 10) { 
-                    needle.style.backgroundColor = '#10b981'; // green-500
-                    noteNameEl.style.color = '#10b981';
-                    
-                    // Se a corda ainda não foi marcada como afinada
-                    if (!stringTunedState[currentStringKey]) {
-                        stringTunedState[currentStringKey] = true;
-                        stringButtons[currentStringKey].classList.add('tuned');
-                        stringButtons[currentStringKey].classList.remove('active');
-                        playTunedSound(); // Toca o som de afinação
-                        statusMessageEl.textContent = `Corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} Afinada! ✅`;
-                        statusMessageEl.classList.remove('theme-color-accent', 'text-red-400');
-                        statusMessageEl.classList.add('text-green-400');
+            if (!tuningComplete) {
+                if (noteData.name === targetStringData.name && noteData.octave === targetStringData.octave) {
+                    if (Math.abs(clampedCents) < 5) { // Afinada (dentro de +/- 5 cents)
+                        needle.style.backgroundColor = '#10b981'; // green-500
+                        noteNameEl.style.color = '#10b981';
+                        noteSharpFlatEl.style.color = '#10b981';
 
-                        // Espera um pouco e avança para a próxima corda
-                        setTimeout(() => {
-                            currentStringIndex++;
-                            highlightCurrentString();
-                            resetUINoteDisplay(); // Limpa o display da nota para a próxima afinação
-                        }, 1500); // Espera 1.5 segundos antes de ir para a próxima
+                        if (!stringTunedState[currentStringKey]) {
+                            stringTunedState[currentStringKey] = true;
+                            stringButtons[currentStringKey].classList.add('tuned');
+                            stringButtons[currentStringKey].classList.remove('active');
+                            stringButtons[currentStringKey].classList.remove(`ring-${currentAccentColor}`); // Remove a cor do anel
+                            
+                            // Aplica a cor base da corda ao botão quando afinada
+                            stringButtons[currentStringKey].classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                            stringButtons[currentStringKey].classList.add(`bg-${currentBaseColor}`);
+                            stringButtons[currentStringKey].classList.add('text-white'); // Garante texto branco
+
+                            playTunedSound();
+                            statusMessageEl.textContent = `Corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} Afinada! ✅`;
+                            statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
+                            statusMessageEl.classList.add('text-green-400');
+
+                            setTimeout(() => {
+                                currentStringIndex++;
+                                highlightCurrentString();
+                                resetUINoteDisplay();
+                            }, 1500);
+                        }
+                    } else { // Perto, mas não afinada
+                        needle.style.backgroundColor = `var(--tw-colors-${currentAccentColor.replace('-', '')})`;
+                        noteNameEl.style.color = `var(--tw-colors-${currentAccentColor.replace('-', '')})`;
+                        noteSharpFlatEl.style.color = `var(--tw-colors-${currentAccentColor.replace('-', '')})`;
+                        statusMessageEl.textContent = `Afine a corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} (${clampedCents.toFixed(0)} cents)`;
+                        statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
+                        statusMessageEl.classList.add(`text-${currentAccentColor}`);
                     }
-                } else { // Perto, mas não afinada
+                } else { // Não é a corda atual ou está muito fora
                     needle.style.backgroundColor = '#f87171'; // red-400
                     noteNameEl.style.color = '#f87171';
-                    statusMessageEl.textContent = `Afine a corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} (${clampedCents.toFixed(0)} cents)`;
-                    statusMessageEl.classList.remove('text-green-400', 'text-red-400');
-                    statusMessageEl.classList.add('theme-color-accent'); // Voltar para a cor do tema se estiver perto
+                    noteSharpFlatEl.style.color = '#f87171';
+                    statusMessageEl.textContent = `Procure a corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} (${stringButtons[currentStringKey].textContent.split(' ')[1].replace(/[()]/g, '')})`;
+                    statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
+                    statusMessageEl.classList.add('text-red-400');
                 }
-            } else { // Não é a corda atual ou está muito fora
-                needle.style.backgroundColor = '#f87171'; // red-400
-                noteNameEl.style.color = '#f87171';
-                statusMessageEl.textContent = `Procure a corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} (${stringButtons[currentStringKey].textContent.split(' ')[1].replace(/[()]/g, '')})`;
-                statusMessageEl.classList.remove('text-green-400');
-                statusMessageEl.classList.add('text-red-400');
-            }
-        }
-
-        // --- Funções de Tema ---
-        function applyTheme(themeName) {
-            const theme = themes[themeName];
-            if (!theme) return;
-
-            // Define as variáveis CSS com as cores do tema selecionado
-            document.documentElement.style.setProperty('--color-primary', getComputedStyle(document.documentElement).getPropertyValue(`--tw-colors-${theme.primary.replace('-', '')}`));
-            document.documentElement.style.setProperty('--color-hover', getComputedStyle(document.documentElement).getPropertyValue(`--tw-colors-${theme.hover.replace('-', '')}`));
-            document.documentElement.style.setProperty('--color-accent', getComputedStyle(document.documentElement).getPropertyValue(`--tw-colors-${theme.accent.replace('-', '')}`));
-            document.documentElement.style.setProperty('--color-bg-button', getComputedStyle(document.documentElement).getPropertyValue(`--tw-colors-${theme.bg.replace('-', '')}`));
-
-            // Marca o seletor de tema ativo
-            themeSelectors.forEach(selector => selector.classList.remove('ring-4', 'ring-teal-400', 'ring-blue-400', 'ring-purple-400'));
-            document.querySelector(`[data-theme="${themeName}"]`).classList.add('ring-4', `ring-${theme.accent}`);
-
-            activeTheme = themeName;
-            localStorage.setItem('violinTunerTheme', themeName);
-            
-            // Re-highlight a corda atual para aplicar a nova cor do tema se a afinação estiver ativa
-            if (isRunning && !tuningComplete) {
-                highlightCurrentString();
-            } else if (!isRunning) {
-                // Se não estiver rodando, garante que agulha e nome da nota voltem ao padrão cinza
-                needle.style.backgroundColor = '#4a5568'; // gray-700
-                noteNameEl.style.color = '#ffffff'; // white
-            }
-            // Atualiza a cor da mensagem de status se aplicável
-            if (!statusMessageEl.classList.contains('text-red-400') && !statusMessageEl.classList.contains('text-green-400')) {
-                statusMessageEl.classList.remove('text-teal-400', 'text-blue-400', 'text-purple-400'); // Remove classes antigas
-                statusMessageEl.classList.add('theme-color-accent'); // Adiciona a nova classe de tema
+            } else { // Modo cromático após todas as cordas estarem afinadas
+                needle.style.backgroundColor = '#2dd4bf'; // teal-400 (cor neutra para modo cromático)
+                noteNameEl.style.color = '#2dd4bf';
+                noteSharpFlatEl.style.color = '#2dd4bf';
             }
         }
 
@@ -566,20 +547,10 @@
         helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
         closeModalBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
 
-        // Removido: Event listeners para os botões de reprodução de nota
-        // playNoteButtons.forEach(button => { ... });
-
-        // Event listeners para os seletores de tema
-        themeSelectors.forEach(selector => {
-            selector.addEventListener('click', (event) => {
-                const themeName = event.target.dataset.theme;
-                applyTheme(themeName);
-            });
-        });
-
-        // Aplica o tema salvo ao carregar a página
+        // Inicialização ao carregar a página
         document.addEventListener('DOMContentLoaded', () => {
-            applyTheme(activeTheme);
+            resetUINoteDisplay();
+            resetStringButtons();
         });
 
     </script>
