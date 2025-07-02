@@ -3,135 +3,297 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Afinador Cromático de Violino</title>
+    <title>Afinador de Violino</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎻</text></svg>">
     <style>
+        :root {
+            --bg-color: #121826;
+            --surface-color: #1A202C;
+            --panel-color: #111827;
+            --primary-color: #38BDF8; /* Azul claro */
+            --green-color: #34D399; /* Verde */
+            --red-color: #F87171; /* Vermelho */
+            --text-color: #E5E7EB;
+            --text-muted-color: #9CA3AF;
+        }
         body {
             font-family: 'Inter', sans-serif;
-            touch-action: manipulation; /* Desativa o zoom por duplo toque em dispositivos móveis */
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            box-sizing: border-box;
+            touch-action: manipulation;
         }
-        /* Estilo para a agulha do afinador */
+        .tuner-container {
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--surface-color);
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* --- Painel Principal do Visor --- */
+        .main-display-panel {
+            background-color: var(--panel-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.2);
+        }
+
+        .tuner-display {
+            position: relative;
+            width: 100%;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        .tuner-gauge {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        .tuner-gauge::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200%;
+            height: 200%;
+            border-radius: 50%;
+            border: 2px solid #374151;
+            border-bottom-color: transparent;
+            border-left-color: transparent;
+            border-right-color: transparent;
+            box-sizing: border-box;
+        }
         #needle {
+            width: 2px;
+            height: 60%;
+            background-color: var(--primary-color);
+            position: absolute;
+            bottom: 0;
+            left: 50%;
             transform-origin: bottom center;
-            transition: transform 0.2s ease-out;
+            transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.3s;
+            border-radius: 2px;
+            box-shadow: 0 0 10px 0px var(--primary-color);
         }
-        /* Estilo para corda ativa/sugerida */
+        .center-line {
+            width: 2px;
+            height: 12px;
+            background-color: var(--green-color);
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0.8;
+            transition: background-color 0.3s ease;
+        }
+        .gauge-label {
+            position: absolute;
+            top: 10%;
+            font-size: 0.75rem;
+            color: var(--text-muted-color);
+        }
+        .gauge-label.left { left: 15%; }
+        .gauge-label.right { right: 15%; }
+
+        .note-info {
+            text-align: center;
+            padding-top: 1rem;
+            border-top: 1px solid #374151;
+        }
+        #note-name {
+            font-size: 5rem;
+            font-weight: 900;
+            line-height: 1;
+            color: var(--text-color);
+            transition: color 0.3s;
+            height: 60px;
+        }
+        #status-message {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted-color);
+            height: 24px;
+            transition: color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        /* --- Botões das Cordas --- */
+        .string-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (min-width: 640px) {
+            .string-buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        .string-button {
+            background-color: #374151;
+            color: var(--text-color);
+            border: 1px solid #4B5563;
+            border-radius: 0.75rem;
+            padding: 0.75rem 0.5rem;
+            font-weight: 600;
+            cursor: default; /* Não clicável durante a afinação */
+            transition: all 0.2s ease-in-out;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+        }
         .string-button.active {
-            /* A cor do anel será definida dinamicamente via JS */
-            @apply ring-4;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 15px 0px #38bdf880;
         }
-        /* Estilo para o volume meter */
-        #volume-meter-bar {
-            transition: width 0.1s ease-out;
+        .note-letter { font-size: 1.125rem; }
+        .note-solfege { font-size: 0.875rem; color: var(--text-muted-color); }
+
+        /* --- Botões de Controle --- */
+        .control-buttons { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+        .control-button {
+            background-color: #374151;
+            color: var(--text-color);
+            border: none;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
-        /* Estilo para o modal */
+        .control-button i { font-size: 1.25rem; }
+        .control-button:hover { filter: brightness(1.2); }
+        #toggle-btn { background-color: var(--primary-color); color: var(--surface-color); }
+        #toggle-btn.stop-mode { background-color: var(--red-color); }
+
+        /* --- Modal de Ajuda --- */
         .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; visibility: hidden; transition: all 0.3s ease-in-out;
         }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+        .modal-content {
+            background-color: var(--surface-color); padding: 2rem; border-radius: 1.5rem;
+            width: 90%; max-width: 500px; transform: scale(0.9); transition: all 0.3s ease-in-out;
+        }
+        .modal-overlay.visible .modal-content { transform: scale(1); }
+        .modal-content h2 { color: var(--primary-color); margin-bottom: 1rem; }
+        .modal-content ul { list-style-position: inside; text-align: left; }
+        .modal-content li { margin-bottom: 0.5rem; }
     </style>
 </head>
-<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+<body>
 
-    <div id="app-container" class="w-full max-w-md bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 text-center space-y-6">
+    <div class="tuner-container">
+        <h1 class="text-2xl font-bold text-center mb-6 text-sky-300">Afinador de Violino</h1>
 
-        <h1 class="text-3xl font-bold text-teal-400">Afinador de Violino</h1>
-
-        <!-- Seção de Temas Removida -->
-
-        <div id="status-message" class="h-10 flex items-center justify-center">
-            <p class="text-gray-400">Clique em "Iniciar" para começar</p>
-        </div>
-
-        <div class="relative w-full h-40 bg-gray-900/50 rounded-lg overflow-hidden flex items-end justify-center">
-            <!-- Linha central -->
-            <div id="center-line" class="absolute top-0 bottom-0 w-1 bg-gray-500/50" style="left: 50%; transform: translateX(-50%);"></div>
-            
-            <!-- Agulha do afinador -->
-            <div id="needle" class="absolute bottom-0 w-1 h-2/3 bg-gray-400 rounded-t-full" style="transform: rotate(0deg);"></div>
-
-            <!-- Indicadores de cents -->
-            <div class="absolute bottom-4 text-xs text-gray-400" style="left: 50%; transform: translateX(-50%);">0</div>
-            <div class="absolute bottom-4 text-xs text-gray-500" style="left: 25%; transform: translateX(-50%);">-50</div>
-            <div class="absolute bottom-4 text-xs text-gray-500" style="left: 75%; transform: translateX(-50%);">+50</div>
-
-            <!-- Volume Meter -->
-            <div class="absolute top-2 left-2 right-2 h-4 bg-gray-700 rounded-full overflow-hidden">
-                <div id="volume-meter-bar" class="h-full bg-blue-400 rounded-full" style="width: 0%;"></div>
+        <div class="main-display-panel">
+            <div class="tuner-display">
+                <div class="tuner-gauge">
+                    <div class="center-line"></div>
+                    <div class="gauge-label left">-50</div>
+                    <div class="gauge-label right">+50</div>
+                </div>
+                <div id="needle" style="transform: rotate(0deg);"></div>
+            </div>
+            <div class="note-info">
+                <div id="note-name">--</div>
+                <div id="status-message">Clique em "Iniciar"</div>
             </div>
         </div>
 
-        <div class="flex items-center justify-center space-x-2">
-            <div id="note-name" class="text-8xl font-black text-white tracking-tighter">--</div>
-            <div class="flex flex-col text-left">
-                <div id="note-sharp-flat" class="text-2xl font-bold text-gray-400 h-8"></div>
-                <div id="note-octave" class="text-2xl font-bold text-gray-500"></div>
-            </div>
-        </div>
-        
-        <div id="frequency-display" class="text-lg text-gray-400 h-6">Frequência: --- Hz</div>
-
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-            <!-- Botões das cordas com IDs para fácil acesso -->
-            <div class="flex flex-col items-center">
-                <button id="string-G3" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">G3 (Sol)</button>
-            </div>
-            <div class="flex flex-col items-center">
-                <button id="string-D4" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">D4 (Ré)</button>
-            </div>
-            <div class="flex flex-col items-center">
-                <button id="string-A4" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">A4 (Lá)</button>
-            </div>
-            <div class="flex flex-col items-center">
-                <button id="string-E5" class="string-button w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-2 rounded-lg transition-all duration-150">E5 (Mi)</button>
-            </div>
+        <div class="string-buttons">
+            <button id="string-G3" class="string-button">
+                <span class="note-letter">G3</span>
+                <span class="note-solfege">(Sol)</span>
+            </button>
+            <button id="string-D4" class="string-button">
+                <span class="note-letter">D4</span>
+                <span class="note-solfege">(Ré)</span>
+            </button>
+            <button id="string-A4" class="string-button">
+                <span class="note-letter">A4</span>
+                <span class="note-solfege">(Lá)</span>
+            </button>
+            <button id="string-E5" class="string-button">
+                <span class="note-letter">E5</span>
+                <span class="note-solfege">(Mi)</span>
+            </button>
         </div>
 
-        <button id="toggle-btn" class="w-full bg-teal-500 hover:bg-teal-600 text-gray-900 font-bold py-4 px-4 rounded-xl transition-all duration-200 ease-in-out transform hover:scale-105 shadow-lg">
-            Iniciar
-        </button>
-
-        <button id="help-btn" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 ease-in-out transform hover:scale-105 shadow-lg mt-3">
-            Ajuda
-        </button>
+        <div class="control-buttons">
+            <button id="toggle-btn" class="control-button">
+                <i class="ph-bold ph-microphone"></i>
+                <span>Iniciar</span>
+            </button>
+            <button id="help-btn" class="control-button">
+                <i class="ph-bold ph-question"></i>
+                <span>Ajuda</span>
+            </button>
+        </div>
     </div>
 
     <!-- Modal de Ajuda -->
-    <div id="help-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 modal-overlay">
-        <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-lg relative text-left space-y-4">
-            <h2 class="text-2xl font-bold text-blue-400 mb-4">Como Usar o Afinador</h2>
-            <p class="text-gray-300">
-                Este afinador de violino foi projetado para ajudá-lo a afinar seu instrumento de forma precisa e intuitiva.
-            </p>
+    <div id="help-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold">Como Usar o Afinador</h2>
             <ul class="list-disc list-inside text-gray-300 space-y-2">
                 <li>
-                    <strong>Iniciar/Parar:</strong> Clique no botão "Iniciar" para ativar o microfone e começar a afinação. Clique novamente para parar.
+                    <strong>Iniciar/Parar:</strong> Clique em "Iniciar" para ativar o microfone. O botão mudará para "Parar".
                 </li>
                 <li>
-                    <strong>Sequência de Afinação:</strong> O afinador o guiará pela sequência padrão das cordas do violino (G3, D4, A4, E5). A corda atual a ser afinada estará destacada.
+                    <strong>Sequência Guiada:</strong> O afinador destacará a corda a ser afinada (G, D, A, E). Toque a corda correspondente no seu violino.
                 </li>
                 <li>
-                    <strong>Indicador de Afinação:</strong> A agulha central indica o quão perto você está da afinação ideal.
+                    <strong>Visor de Afinação:</strong> A agulha indica o quão perto você está. O objetivo é centralizá-la.
                     <ul class="list-circle list-inside ml-4 mt-1">
-                        <li>
-                            <span class="text-green-400">Verde:</span> Corda afinada (dentro de +/- 5 cents).
-                        </li>
-                        <li>
-                            <span class="text-red-400">Vermelho:</span> Corda fora de afinação ou nota incorreta.
-                        </li>
-                        <li>
-                            <span class="text-gray-400">Cinza:</span> Perto da afinação, mas ainda precisa de ajuste.
-                        </li>
+                        <li><strong style="color: var(--green-color);">Afinado:</strong> A agulha e a nota ficam verdes.</li>
+                        <li><strong style="color: var(--red-color);">Grave (Baixo):</strong> A agulha vai para a esquerda e fica vermelha. Aperte a cravelha.</li>
+                        <li><strong style="color: var(--primary-color);">Agudo (Alto):</strong> A agulha vai para a direita. Afrouxe a cravelha.</li>
                     </ul>
                 </li>
                 <li>
-                    <strong>Volume do Microfone:</strong> A barra azul no topo do afinador mostra o nível de volume captado pelo microfone.
+                    <strong>Conclusão:</strong> Ao afinar uma corda, ela mudará para sua cor designada e o afinador avançará para a próxima. Ao final, todas as cordas estarão coloridas.
                 </li>
             </ul>
-            <button id="close-modal-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-gray-900 font-bold py-3 px-4 rounded-xl transition-all duration-200 ease-in-out shadow-lg mt-4">
+            <button id="close-modal-btn" class="control-button w-full mt-6" style="background-color: var(--primary-color); color: var(--surface-color);">
                 Entendi
             </button>
         </div>
@@ -139,14 +301,13 @@
 
     <script>
         // --- Elementos do DOM ---
-        const appContainer = document.getElementById('app-container');
         const noteNameEl = document.getElementById('note-name');
-        const noteSharpFlatEl = document.getElementById('note-sharp-flat');
-        const noteOctaveEl = document.getElementById('note-octave');
-        const toggleBtn = document.getElementById('toggle-btn');
-        const needle = document.getElementById('needle');
         const statusMessageEl = document.getElementById('status-message');
-        const frequencyDisplayEl = document.getElementById('frequency-display');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const toggleBtnIcon = toggleBtn.querySelector('i');
+        const toggleBtnText = toggleBtn.querySelector('span');
+        const needle = document.getElementById('needle');
+        const centerLine = document.querySelector('.center-line');
         const stringButtons = {
             'G3': document.getElementById('string-G3'),
             'D4': document.getElementById('string-D4'),
@@ -154,11 +315,9 @@
             'E5': document.getElementById('string-E5')
         };
         const allStringButtons = document.querySelectorAll('.string-button');
-        const volumeMeterBar = document.getElementById('volume-meter-bar');
         const helpBtn = document.getElementById('help-btn');
         const helpModal = document.getElementById('help-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
-        const centerLine = document.getElementById('center-line');
 
         // --- Variáveis de Áudio e Estado ---
         let audioContext;
@@ -183,31 +342,27 @@
         const CENTS_HISTORY_SIZE = 5;
         let centsHistory = [];
 
-        // Cores específicas para cada corda
+        // Cores específicas para cada corda (usando Tailwind classes para simplicidade)
         const stringColors = {
-            'G3': { base: 'red-500', accent: 'red-400' },
-            'D4': { base: 'yellow-500', accent: 'yellow-400' },
-            'A4': { base: 'blue-500', accent: 'blue-400' },
-            'E5': { base: 'green-500', accent: 'green-400' }
+            'G3': { base: 'bg-red-500', border: 'border-red-400', shadow: 'shadow-red-400/50' },
+            'D4': { base: 'bg-yellow-500', border: 'border-yellow-400', shadow: 'shadow-yellow-400/50' },
+            'A4': { base: 'bg-blue-500', border: 'border-blue-400', shadow: 'shadow-blue-400/50' },
+            'E5': { base: 'bg-green-500', border: 'border-green-400', shadow: 'shadow-green-400/50' }
         };
 
         // --- Funções Auxiliares de Áudio ---
         function playTunedSound() {
-            if (audioContext) {
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                
-                oscillator.start(audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5); 
-                oscillator.stop(audioContext.currentTime + 0.5);
-            }
+            if (!audioContext) return;
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            oscillator.start(audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5); 
+            oscillator.stop(audioContext.currentTime + 0.5);
         }
 
         // --- Funções Principais ---
@@ -226,40 +381,26 @@
                 } else if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
-
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                
-                if (!stream.active) {
-                    throw new Error('O stream do microfone não está ativo.');
-                }
-
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false } });
                 mediaStreamSource = audioContext.createMediaStreamSource(stream);
                 analyser = audioContext.createAnalyser();
-                analyser.fftSize = 2048;
+                analyser.fftSize = 4096; // Maior precisão para frequências baixas
                 buffer = new Float32Array(analyser.fftSize);
-                
                 mediaStreamSource.connect(analyser);
-
                 isRunning = true;
                 updateUIOnStart();
                 initializeTuningSequence();
                 analysePitch();
-                console.log('Afinador iniciado. Contexto de áudio:', audioContext.state);
             } catch (err) {
                 console.error('Erro ao aceder ao microfone:', err);
                 let errorMessage = 'Erro ao aceder ao microfone.';
                 if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    errorMessage = 'Acesso ao microfone negado. Por favor, permita o acesso ao microfone nas configurações do seu navegador.';
+                    errorMessage = 'Acesso ao microfone negado.';
                 } else if (err.name === 'NotFoundError') {
-                    errorMessage = 'Nenhum microfone encontrado. Verifique se um microfone está conectado e funcionando.';
-                } else if (err.name === 'NotReadableError') {
-                    errorMessage = 'O microfone está a ser usado por outra aplicação. Por favor, feche-a e tente novamente.';
+                    errorMessage = 'Nenhum microfone encontrado.';
                 }
                 statusMessageEl.textContent = errorMessage;
-                statusMessageEl.classList.add('text-red-400');
-                toggleBtn.textContent = 'Iniciar';
-                toggleBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
-                toggleBtn.classList.add('bg-teal-500', 'hover:bg-teal-600');
+                statusMessageEl.style.color = 'var(--red-color)';
             }
         }
 
@@ -267,175 +408,105 @@
             if (mediaStreamSource) {
                 mediaStreamSource.mediaStream.getTracks().forEach(track => track.stop());
             }
-            if (audioContext) {
+            if (audioContext && audioContext.state !== 'closed') {
                 audioContext.suspend();
             }
             isRunning = false;
             updateUIOnStop();
             centsHistory = [];
-            console.log('Afinador parado. Contexto de áudio:', audioContext ? audioContext.state : 'fechado');
         }
 
         function analysePitch() {
-            if (!isRunning || !analyser || !audioContext || audioContext.state !== 'running') return;
-
+            if (!isRunning) return;
             analyser.getFloatTimeDomainData(buffer);
-
-            let sumSquares = 0;
-            for (let i = 0; i < buffer.length; i++) {
-                sumSquares += buffer[i] * buffer[i];
-            }
-            const rms = Math.sqrt(sumSquares / buffer.length);
-            
-            const volumeWidth = Math.min(100, rms * 500);
-            volumeMeterBar.style.width = `${volumeWidth}%`;
-
             const fundamentalFreq = getPitchAutoCorrelation(buffer, audioContext.sampleRate);
-
             if (fundamentalFreq > 0) {
                 const noteData = getNoteData(fundamentalFreq);
-                
                 centsHistory.push(noteData.cents);
-                if (centsHistory.length > CENTS_HISTORY_SIZE) {
-                    centsHistory.shift();
-                }
+                if (centsHistory.length > CENTS_HISTORY_SIZE) centsHistory.shift();
                 const averagedCents = centsHistory.reduce((a, b) => a + b, 0) / centsHistory.length;
-
-                updateUINote({ ...noteData, cents: averagedCents }, fundamentalFreq);
+                updateUINote({ ...noteData, cents: averagedCents });
             } else {
                 resetUINoteDisplay();
-                statusMessageEl.textContent = 'Nenhuma nota detectada. Toque uma corda.';
-                statusMessageEl.classList.remove('text-green-400', 'text-blue-400', 'text-red-400', 'text-yellow-400');
-                statusMessageEl.classList.add('text-red-400');
-                centsHistory = [];
             }
-            
             requestAnimationFrame(analysePitch);
         }
 
         function getPitchAutoCorrelation(buffer, sampleRate) {
-            const minFreq = 80;
-            const maxFreq = 800;
-            const minPeriod = sampleRate / maxFreq;
-            const maxPeriod = sampleRate / minFreq;
-
+            const minFreq = 80, maxFreq = 1000;
+            const minPeriod = sampleRate / maxFreq, maxPeriod = sampleRate / minFreq;
             const n = buffer.length;
             const autoCorrelation = new Float32Array(n);
-
             for (let lag = 0; lag < n; lag++) {
                 let sum = 0;
-                for (let i = 0; i < n - lag; i++) {
-                    sum += buffer[i] * buffer[i + lag];
-                }
+                for (let i = 0; i < n - lag; i++) sum += buffer[i] * buffer[i + lag];
                 autoCorrelation[lag] = sum;
             }
-
-            let maxVal = -1;
-            let peakIndex = -1;
-
+            let maxVal = -1, peakIndex = -1;
             for (let i = Math.floor(minPeriod); i < Math.min(n, Math.ceil(maxPeriod)); i++) {
-                if (autoCorrelation[i] > maxVal) {
-                    maxVal = autoCorrelation[i];
-                    peakIndex = i;
-                }
+                if (autoCorrelation[i] > maxVal) { maxVal = autoCorrelation[i]; peakIndex = i; }
             }
-
-            if (peakIndex <= 0) {
-                return -1;
+            if (peakIndex <= 0) return -1;
+            const peak = peakIndex;
+            if (peak > 0 && peak < n - 1) {
+                const y1 = autoCorrelation[peak - 1], y2 = autoCorrelation[peak], y3 = autoCorrelation[peak + 1];
+                const shift = (y1 - y3) / (2 * (y1 - 2 * y2 + y3));
+                if (Math.abs(shift) < 1) return sampleRate / (peak + shift);
             }
-
-            let x0 = peakIndex - 1;
-            let x1 = peakIndex;
-            let x2 = peakIndex + 1;
-
-            if (x0 < 0 || x2 >= n) {
-                return sampleRate / peakIndex;
-            }
-
-            let s0 = autoCorrelation[x0];
-            let s1 = autoCorrelation[x1];
-            let s2 = autoCorrelation[x2];
-
-            let shift = 0.5 * (s0 - s2) / (s0 - 2 * s1 + s2);
-            let finalIndex = x1 + shift;
-
-            if (finalIndex > 0) {
-                return sampleRate / finalIndex;
-            }
-            return -1;
+            return sampleRate / peakIndex;
         }
 
         function getNoteData(frequency) {
             const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
             const roundedNoteNum = Math.round(noteNum) + 69;
             const idealFrequency = 440 * Math.pow(2, (roundedNoteNum - 69) / 12);
-            const cents = 1200 * (Math.log(frequency / idealFrequency) / Math.log(2));
-            
             return {
                 name: noteStrings[roundedNoteNum % 12],
                 octave: Math.floor(roundedNoteNum / 12) - 1,
-                cents: cents
+                cents: 1200 * (Math.log(frequency / idealFrequency) / Math.log(2))
             };
         }
 
         // --- Funções de UI ---
-
         function updateUIOnStart() {
-            toggleBtn.textContent = 'Parar';
-            toggleBtn.classList.remove('bg-teal-500', 'hover:bg-teal-600');
-            toggleBtn.classList.add('bg-red-500', 'hover:bg-red-600');
-            statusMessageEl.textContent = 'A ouvir...';
-            statusMessageEl.classList.remove('text-red-400');
+            toggleBtn.classList.add('stop-mode');
+            toggleBtnIcon.className = 'ph-bold ph-stop';
+            toggleBtnText.textContent = 'Parar';
             tuningComplete = false;
         }
 
         function updateUIOnStop() {
-            toggleBtn.textContent = 'Iniciar';
-            toggleBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
-            toggleBtn.classList.add('bg-teal-500', 'hover:bg-teal-600');
+            toggleBtn.classList.remove('stop-mode');
+            toggleBtnIcon.className = 'ph-bold ph-microphone';
+            toggleBtnText.textContent = 'Iniciar';
             statusMessageEl.textContent = 'Clique em "Iniciar" para começar';
             resetUINoteDisplay();
-            resetStringButtons(); // Reseta completamente os botões ao parar
+            resetStringButtons();
             currentStringIndex = 0;
             tuningComplete = false;
-            volumeMeterBar.style.width = '0%';
         }
 
         function resetUINoteDisplay() {
             noteNameEl.textContent = '--';
-            noteSharpFlatEl.textContent = '';
-            noteOctaveEl.textContent = '';
+            noteNameEl.style.color = 'var(--text-color)';
             needle.style.transform = 'rotate(0deg)';
-            needle.style.backgroundColor = '#4a5568'; // gray-700
-            noteNameEl.style.color = '#ffffff'; // white
-            frequencyDisplayEl.textContent = 'Frequência: --- Hz';
-            centerLine.classList.remove('bg-red-500/50', 'bg-yellow-500/50', 'bg-blue-500/50', 'bg-green-500/50');
-            centerLine.classList.add('bg-gray-500/50');
+            needle.style.backgroundColor = 'var(--primary-color)';
+            if(isRunning && !tuningComplete) {
+                const currentStringKey = tuningSequence[currentStringIndex];
+                const stringInfo = violinStrings[currentStringKey];
+                statusMessageEl.textContent = `Toque a corda ${stringInfo.name} (${currentStringKey})`;
+            }
         }
 
-        /**
-         * Reseta o estado visual de todos os botões das cordas.
-         * Agora, as cordas afinadas permanecem com sua cor correspondente.
-         */
         function resetStringButtons() {
             allStringButtons.forEach(button => {
-                button.classList.remove('active'); // Sempre remove 'active'
-                // Remove todas as classes de anel de cor
-                button.classList.remove('ring-red-400', 'ring-yellow-400', 'ring-blue-400', 'ring-green-400'); 
-                
-                const stringKey = Object.keys(stringButtons).find(key => stringButtons[key] === button);
-                const currentColor = stringColors[stringKey] ? stringColors[stringKey].base : 'gray-700';
-
-                // Se a corda NÃO estiver afinada, reseta para o estilo padrão cinza
-                if (!button.classList.contains('tuned')) {
-                    button.classList.remove('bg-red-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'); // Remove cores específicas
-                    button.classList.add('bg-gray-700', 'hover:bg-gray-600', 'text-white');
-                } else {
-                    // Se a corda JÁ estiver afinada, garante que ela mantenha a cor base correspondente
-                    button.classList.remove('bg-gray-700', 'hover:bg-gray-600'); // Remove cinza
-                    button.classList.add(`bg-${currentColor}`); // Adiciona a cor base da corda
-                    button.classList.add('text-white'); // Garante texto branco
-                }
+                button.classList.remove('active');
+                // Remove todas as classes de cor específicas
+                Object.values(stringColors).forEach(color => {
+                    button.classList.remove(color.base, color.border, color.shadow, 'text-white');
+                });
+                // Adiciona a cor padrão
+                button.classList.add('bg-[#374151]', 'border-[#4B5563]');
             });
         }
 
@@ -448,111 +519,84 @@
         }
 
         function highlightCurrentString() {
-            resetStringButtons(); // Remove o destaque 'active' das cordas anteriores
-
+            allStringButtons.forEach(btn => btn.classList.remove('active'));
             if (currentStringIndex < tuningSequence.length) {
                 const currentStringKey = tuningSequence[currentStringIndex];
-                const currentColorAccent = stringColors[currentStringKey].accent;
-
                 stringButtons[currentStringKey].classList.add('active');
-                stringButtons[currentStringKey].classList.add(`ring-${currentColorAccent}`);
-
-                statusMessageEl.textContent = `Afine a corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} (${stringButtons[currentStringKey].textContent.split(' ')[1].replace(/[()]/g, '')})`;
-                statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
-                statusMessageEl.classList.add(`text-${currentColorAccent}`);
-
-                centerLine.classList.remove('bg-red-500/50', 'bg-yellow-500/50', 'bg-blue-500/50', 'bg-green-500/50', 'bg-gray-500/50');
-                centerLine.classList.add(`bg-${currentColorAccent}/50`);
-
+                const stringInfo = violinStrings[currentStringKey];
+                statusMessageEl.textContent = `Afine a corda ${stringInfo.name} (${currentStringKey})`;
+                statusMessageEl.style.color = 'var(--text-muted-color)';
             } else {
                 statusMessageEl.textContent = 'Violino Afinadíssimo! 🎉';
-                statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
-                statusMessageEl.classList.add('text-green-400');
+                statusMessageEl.style.color = 'var(--green-color)';
+                noteNameEl.textContent = '✓';
+                noteNameEl.style.color = 'var(--green-color)';
                 tuningComplete = true;
-                centerLine.classList.remove('bg-red-500/50', 'bg-yellow-500/50', 'bg-blue-500/50', 'bg-green-500/50', 'bg-gray-500/50');
-                centerLine.classList.add('bg-green-500/50');
             }
         }
         
-        function updateUINote(noteData, frequency) {
+        function updateUINote(noteData) {
+            if (tuningComplete) return;
+
             const currentStringKey = tuningSequence[currentStringIndex];
             const targetStringData = violinStrings[currentStringKey];
-            const currentStringColors = stringColors[currentStringKey];
-            const currentAccentColor = currentStringColors ? currentStringColors.accent : 'gray-400';
-            const currentBaseColor = currentStringColors ? currentStringColors.base : 'gray-700';
-
+            
             noteNameEl.textContent = noteData.name.split('♯')[0];
-            noteSharpFlatEl.textContent = noteData.name.split('♯').length > 1 ? '♯' : '';
-            noteOctaveEl.textContent = noteData.octave;
-            frequencyDisplayEl.textContent = `Frequência: ${frequency.toFixed(2)} Hz`;
 
             const clampedCents = Math.max(-50, Math.min(50, noteData.cents));
-            const rotation = (clampedCents / 50) * 60;
+            const rotation = (clampedCents / 50) * 45; // Ângulo máximo de 45 graus
             needle.style.transform = `rotate(${rotation}deg)`;
 
-            if (!tuningComplete) {
-                if (noteData.name === targetStringData.name && noteData.octave === targetStringData.octave) {
-                    if (Math.abs(clampedCents) < 5) { // Afinada (dentro de +/- 5 cents)
-                        needle.style.backgroundColor = '#10b981'; // green-500
-                        noteNameEl.style.color = '#10b981';
-                        noteSharpFlatEl.style.color = '#10b981';
+            if (noteData.name === targetStringData.name && noteData.octave === targetStringData.octave) {
+                if (Math.abs(clampedCents) < 5) { // Afinada
+                    needle.style.backgroundColor = 'var(--green-color)';
+                    noteNameEl.style.color = 'var(--green-color)';
+                    statusMessageEl.textContent = "Afinado!";
+                    statusMessageEl.style.color = 'var(--green-color)';
 
-                        if (!stringTunedState[currentStringKey]) {
-                            stringTunedState[currentStringKey] = true;
-                            stringButtons[currentStringKey].classList.add('tuned');
-                            stringButtons[currentStringKey].classList.remove('active');
-                            stringButtons[currentStringKey].classList.remove(`ring-${currentAccentColor}`); // Remove a cor do anel
-                            
-                            // Aplica a cor base da corda ao botão quando afinada
-                            stringButtons[currentStringKey].classList.remove('bg-gray-700', 'hover:bg-gray-600');
-                            stringButtons[currentStringKey].classList.add(`bg-${currentBaseColor}`);
-                            stringButtons[currentStringKey].classList.add('text-white'); // Garante texto branco
-
-                            playTunedSound();
-                            statusMessageEl.textContent = `Corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} Afinada! ✅`;
-                            statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
-                            statusMessageEl.classList.add('text-green-400');
-
-                            setTimeout(() => {
-                                currentStringIndex++;
-                                highlightCurrentString();
-                                resetUINoteDisplay();
-                            }, 1500);
-                        }
-                    } else { // Perto, mas não afinada
-                        needle.style.backgroundColor = `var(--tw-colors-${currentAccentColor.replace('-', '')})`;
-                        noteNameEl.style.color = `var(--tw-colors-${currentAccentColor.replace('-', '')})`;
-                        noteSharpFlatEl.style.color = `var(--tw-colors-${currentAccentColor.replace('-', '')})`;
-                        statusMessageEl.textContent = `Afine a corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} (${clampedCents.toFixed(0)} cents)`;
-                        statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
-                        statusMessageEl.classList.add(`text-${currentAccentColor}`);
+                    if (!stringTunedState[currentStringKey]) {
+                        stringTunedState[currentStringKey] = true;
+                        const button = stringButtons[currentStringKey];
+                        const colors = stringColors[currentStringKey];
+                        button.classList.remove('active', 'bg-[#374151]');
+                        button.classList.add(colors.base, 'text-white');
+                        
+                        playTunedSound();
+                        
+                        setTimeout(() => {
+                            currentStringIndex++;
+                            highlightCurrentString();
+                            resetUINoteDisplay();
+                        }, 1200);
                     }
-                } else { // Não é a corda atual ou está muito fora
-                    needle.style.backgroundColor = '#f87171'; // red-400
-                    noteNameEl.style.color = '#f87171';
-                    noteSharpFlatEl.style.color = '#f87171';
-                    statusMessageEl.textContent = `Procure a corda ${stringButtons[currentStringKey].textContent.split(' ')[0]} (${stringButtons[currentStringKey].textContent.split(' ')[1].replace(/[()]/g, '')})`;
-                    statusMessageEl.classList.remove('text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400', 'text-gray-400');
-                    statusMessageEl.classList.add('text-red-400');
+                } else { // Perto, mas não afinada
+                    const direction = clampedCents < 0 ? 'Baixo' : 'Alto';
+                    needle.style.backgroundColor = clampedCents < 0 ? 'var(--red-color)' : 'var(--primary-color)';
+                    noteNameEl.style.color = clampedCents < 0 ? 'var(--red-color)' : 'var(--primary-color)';
+                    statusMessageEl.textContent = `Um pouco ${direction} (${clampedCents.toFixed(0)} cents)`;
+                    statusMessageEl.style.color = clampedCents < 0 ? 'var(--red-color)' : 'var(--primary-color)';
                 }
-            } else { // Modo cromático após todas as cordas estarem afinadas
-                needle.style.backgroundColor = '#2dd4bf'; // teal-400 (cor neutra para modo cromático)
-                noteNameEl.style.color = '#2dd4bf';
-                noteSharpFlatEl.style.color = '#2dd4bf';
+            } else { // Nota errada
+                needle.style.backgroundColor = 'var(--red-color)';
+                noteNameEl.style.color = 'var(--red-color)';
+                statusMessageEl.textContent = `Nota errada. Toque a corda ${targetStringData.name}`;
+                statusMessageEl.style.color = 'var(--red-color)';
             }
         }
 
         // --- Event Listeners ---
         toggleBtn.addEventListener('click', toggleTuner);
-        helpBtn.addEventListener('click', () => helpModal.classList.remove('hidden'));
-        closeModalBtn.addEventListener('click', () => helpModal.classList.add('hidden'));
+        helpBtn.addEventListener('click', () => helpModal.classList.add('visible'));
+        closeModalBtn.addEventListener('click', () => helpModal.classList.remove('visible'));
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) helpModal.classList.remove('visible');
+        });
 
-        // Inicialização ao carregar a página
+        // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
             resetUINoteDisplay();
             resetStringButtons();
         });
-
     </script>
 </body>
 </html>
