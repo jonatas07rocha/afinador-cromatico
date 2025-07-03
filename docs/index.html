@@ -43,7 +43,7 @@
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+       
         /* --- Painel Principal do Visor --- */
         .main-display-panel {
             background-color: var(--panel-color);
@@ -154,7 +154,7 @@
                 grid-template-columns: repeat(4, 1fr);
             }
         }
-        
+       
         .string-button {
             background-color: #374151;
             color: var(--text-color);
@@ -265,7 +265,6 @@
 <body>
 
     <div class="tuner-container">
-        <!-- SEÇÃO DO AFINADOR -->
         <h1 class="text-2xl font-bold text-center mb-6 text-sky-300">Afinador de Violino</h1>
 
         <div class="main-display-panel">
@@ -307,28 +306,26 @@
                 <i class="ph-bold ph-microphone"></i>
                 <span>Iniciar</span>
             </button>
+            <button id="share-btn" class="control-button">
+                <i class="ph-bold ph-share-network"></i>
+                <span>Compartilhar</span>
+            </button>
             <button id="help-btn" class="control-button">
                 <i class="ph-bold ph-question"></i>
                 <span>Ajuda</span>
             </button>
         </div>
-        <!-- FIM DA SEÇÃO DO AFINADOR -->
-
-        <!-- Início do Componente de Listas Recomendadas (Integrado) -->
         <div class="affiliate-section">
             <h2 class="text-lg font-bold text-center mb-1 text-sky-400">Equipamentos Recomendados</h2>
             <p class="text-center text-sm text-gray-400 mb-4">Uma seleção de listas para sua jornada musical.</p>
-            
+           
             <div id="recommended-lists-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <!-- Os cards serão gerados pelo JavaScript e inseridos aqui -->
-            </div>
-            
+                </div>
+           
             <p class="text-center text-xs text-gray-500 mt-4">Ao comprar através dos nossos links, você apoia este projeto sem custo adicional. Obrigado!</p>
         </div>
-        <!-- Fim do Componente -->
-    </div>
+        </div>
 
-    <!-- Modal de Ajuda -->
     <div id="help-modal" class="modal-overlay">
         <div class="modal-content">
             <h2 class="text-2xl font-bold">Como Usar o Afinador</h2>
@@ -377,6 +374,7 @@
             const helpBtn = document.getElementById('help-btn');
             const helpModal = document.getElementById('help-modal');
             const closeModalBtn = document.getElementById('close-modal-btn');
+            const shareBtn = document.getElementById('share-btn');
 
             let audioContext;
             let analyser;
@@ -384,14 +382,14 @@
             let buffer;
             let isRunning = false;
             const noteStrings = ["Dó", "Dó♯", "Ré", "Ré♯", "Mi", "Fá", "Fá♯", "Sol", "Sol♯", "Lá", "Lá♯", "Si"];
-            
+           
             const violinStrings = {
                 'G3': { name: 'Sol', octave: 3, frequency: 195.998 },
                 'D4': { name: 'Ré', octave: 4, frequency: 293.665 },
                 'A4': { name: 'Lá', octave: 4, frequency: 440.000 },
                 'E5': { name: 'Mi', octave: 5, frequency: 659.255 }
             };
-            
+           
             const tuningSequence = ['G3', 'D4', 'A4', 'E5'];
             let currentStringIndex = 0;
             let stringTunedState = { 'G3': false, 'D4': false, 'A4': false, 'E5': false };
@@ -586,13 +584,13 @@
                     tuningComplete = true;
                 }
             }
-            
+           
             function updateUINote(noteData) {
                 if (tuningComplete) return;
 
                 const currentStringKey = tuningSequence[currentStringIndex];
                 const targetStringData = violinStrings[currentStringKey];
-                
+               
                 noteNameEl.textContent = noteData.name.split('♯')[0];
 
                 const clampedCents = Math.max(-50, Math.min(50, noteData.cents));
@@ -612,9 +610,9 @@
                             const colors = stringColors[currentStringKey];
                             button.classList.remove('active', 'bg-[#374151]');
                             button.classList.add(colors.base, 'text-white');
-                            
+                           
                             playTunedSound();
-                            
+                           
                             setTimeout(() => {
                                 currentStringIndex++;
                                 highlightCurrentString();
@@ -642,6 +640,24 @@
             helpModal.addEventListener('click', (e) => {
                 if (e.target === helpModal) helpModal.classList.remove('visible');
             });
+
+            // --- CÓDIGO DO BOTÃO COMPARTILHAR ---
+            if (navigator.share) {
+                shareBtn.addEventListener('click', async () => {
+                    try {
+                        await navigator.share({
+                            title: 'Afinador de Violino Online',
+                            text: 'Afine seu violino de forma fácil e precisa com este afinador online!',
+                            url: window.location.href,
+                        });
+                    } catch (error) {
+                        console.error('Erro ao compartilhar:', error);
+                    }
+                });
+            } else {
+                // Opcional: esconde o botão se a API não for suportada.
+                if(shareBtn) shareBtn.style.display = 'none';
+            }
 
             resetUINoteDisplay();
             resetStringButtons();
@@ -693,7 +709,7 @@
 
                 shuffleArray(affiliateLists);
                 const selectedLists = affiliateLists.slice(0, 3);
-                
+               
                 gridContainer.innerHTML = '';
 
                 selectedLists.forEach(list => {
