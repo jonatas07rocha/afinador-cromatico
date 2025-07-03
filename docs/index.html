@@ -30,7 +30,7 @@
             align-items: center;
             min-height: 100vh;
             margin: 0;
-            padding: 1rem;
+            padding: 2rem 1rem;
             box-sizing: border-box;
             touch-action: manipulation;
         }
@@ -149,7 +149,7 @@
             gap: 0.75rem;
             margin-bottom: 1.5rem;
         }
-        @media (min-width: 640px) {
+        @media (min-width: 420px) {
             .string-buttons {
                 grid-template-columns: repeat(4, 1fr);
             }
@@ -162,7 +162,7 @@
             border-radius: 0.75rem;
             padding: 0.75rem 0.5rem;
             font-weight: 600;
-            cursor: default; /* Não clicável durante a afinação */
+            cursor: default;
             transition: all 0.2s ease-in-out;
             position: relative;
             overflow: hidden;
@@ -217,11 +217,55 @@
         .modal-content h2 { color: var(--primary-color); margin-bottom: 1rem; }
         .modal-content ul { list-style-position: inside; text-align: left; }
         .modal-content li { margin-bottom: 0.5rem; }
+
+        /* --- ESTILOS PARA LISTAS DE AFILIADOS (HÍBRIDO) --- */
+        .affiliate-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #374151;
+        }
+        .list-card {
+            background-color: var(--panel-color);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            border: 1px solid #374151;
+            display: flex;
+            flex-direction: column;
+        }
+        .list-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(56, 189, 248, 0.1);
+            border-color: var(--primary-color);
+        }
+        .list-card-image-wrapper {
+            width: 100%;
+            padding-top: 100%; /* Proporção 1:1 */
+            position: relative;
+            background-color: #ffffff;
+        }
+        .list-card-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Garante que a imagem inteira apareça */
+            padding: 0.5rem; /* Um pequeno preenchimento para não colar nas bordas */
+        }
+        .list-card-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 0.75rem;
+        }
     </style>
 </head>
 <body>
 
     <div class="tuner-container">
+        <!-- SEÇÃO DO AFINADOR -->
         <h1 class="text-2xl font-bold text-center mb-6 text-sky-300">Afinador de Violino</h1>
 
         <div class="main-display-panel">
@@ -268,6 +312,20 @@
                 <span>Ajuda</span>
             </button>
         </div>
+        <!-- FIM DA SEÇÃO DO AFINADOR -->
+
+        <!-- Início do Componente de Listas Recomendadas (Integrado) -->
+        <div class="affiliate-section">
+            <h2 class="text-lg font-bold text-center mb-1 text-sky-400">Equipamentos Recomendados</h2>
+            <p class="text-center text-sm text-gray-400 mb-4">Uma seleção de listas para sua jornada musical.</p>
+            
+            <div id="recommended-lists-grid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Os cards serão gerados pelo JavaScript e inseridos aqui -->
+            </div>
+            
+            <p class="text-center text-xs text-gray-500 mt-4">Ao comprar através dos nossos links, você apoia este projeto sem custo adicional. Obrigado!</p>
+        </div>
+        <!-- Fim do Componente -->
     </div>
 
     <!-- Modal de Ajuda -->
@@ -300,302 +358,367 @@
     </div>
 
     <script>
-        // --- Elementos do DOM ---
-        const noteNameEl = document.getElementById('note-name');
-        const statusMessageEl = document.getElementById('status-message');
-        const toggleBtn = document.getElementById('toggle-btn');
-        const toggleBtnIcon = toggleBtn.querySelector('i');
-        const toggleBtnText = toggleBtn.querySelector('span');
-        const needle = document.getElementById('needle');
-        const centerLine = document.querySelector('.center-line');
-        const stringButtons = {
-            'G3': document.getElementById('string-G3'),
-            'D4': document.getElementById('string-D4'),
-            'A4': document.getElementById('string-A4'),
-            'E5': document.getElementById('string-E5')
-        };
-        const allStringButtons = document.querySelectorAll('.string-button');
-        const helpBtn = document.getElementById('help-btn');
-        const helpModal = document.getElementById('help-modal');
-        const closeModalBtn = document.getElementById('close-modal-btn');
-
-        // --- Variáveis de Áudio e Estado ---
-        let audioContext;
-        let analyser;
-        let mediaStreamSource;
-        let buffer;
-        let isRunning = false;
-        const noteStrings = ["Dó", "Dó♯", "Ré", "Ré♯", "Mi", "Fá", "Fá♯", "Sol", "Sol♯", "Lá", "Lá♯", "Si"];
-        
-        const violinStrings = {
-            'G3': { name: 'Sol', octave: 3, frequency: 195.998 },
-            'D4': { name: 'Ré', octave: 4, frequency: 293.665 },
-            'A4': { name: 'Lá', octave: 4, frequency: 440.000 },
-            'E5': { name: 'Mi', octave: 5, frequency: 659.255 }
-        };
-        
-        const tuningSequence = ['G3', 'D4', 'A4', 'E5'];
-        let currentStringIndex = 0;
-        let stringTunedState = { 'G3': false, 'D4': false, 'A4': false, 'E5': false };
-        let tuningComplete = false;
-
-        const CENTS_HISTORY_SIZE = 5;
-        let centsHistory = [];
-
-        // Cores específicas para cada corda (usando Tailwind classes para simplicidade)
-        const stringColors = {
-            'G3': { base: 'bg-red-500', border: 'border-red-400', shadow: 'shadow-red-400/50' },
-            'D4': { base: 'bg-yellow-500', border: 'border-yellow-400', shadow: 'shadow-yellow-400/50' },
-            'A4': { base: 'bg-blue-500', border: 'border-blue-400', shadow: 'shadow-blue-400/50' },
-            'E5': { base: 'bg-green-500', border: 'border-green-400', shadow: 'shadow-green-400/50' }
-        };
-
-        // --- Funções Auxiliares de Áudio ---
-        function playTunedSound() {
-            if (!audioContext) return;
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-            oscillator.start(audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5); 
-            oscillator.stop(audioContext.currentTime + 0.5);
-        }
-
-        // --- Funções Principais ---
-        async function toggleTuner() {
-            if (isRunning) {
-                stopTuner();
-            } else {
-                await startTuner();
-            }
-        }
-
-        async function startTuner() {
-            try {
-                if (audioContext && audioContext.state === 'suspended') {
-                    await audioContext.resume();
-                } else if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false } });
-                mediaStreamSource = audioContext.createMediaStreamSource(stream);
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 4096; // Maior precisão para frequências baixas
-                buffer = new Float32Array(analyser.fftSize);
-                mediaStreamSource.connect(analyser);
-                isRunning = true;
-                updateUIOnStart();
-                initializeTuningSequence();
-                analysePitch();
-            } catch (err) {
-                console.error('Erro ao aceder ao microfone:', err);
-                let errorMessage = 'Erro ao aceder ao microfone.';
-                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                    errorMessage = 'Acesso ao microfone negado.';
-                } else if (err.name === 'NotFoundError') {
-                    errorMessage = 'Nenhum microfone encontrado.';
-                }
-                statusMessageEl.textContent = errorMessage;
-                statusMessageEl.style.color = 'var(--red-color)';
-            }
-        }
-
-        function stopTuner() {
-            if (mediaStreamSource) {
-                mediaStreamSource.mediaStream.getTracks().forEach(track => track.stop());
-            }
-            if (audioContext && audioContext.state !== 'closed') {
-                audioContext.suspend();
-            }
-            isRunning = false;
-            updateUIOnStop();
-            centsHistory = [];
-        }
-
-        function analysePitch() {
-            if (!isRunning) return;
-            analyser.getFloatTimeDomainData(buffer);
-            const fundamentalFreq = getPitchAutoCorrelation(buffer, audioContext.sampleRate);
-            if (fundamentalFreq > 0) {
-                const noteData = getNoteData(fundamentalFreq);
-                centsHistory.push(noteData.cents);
-                if (centsHistory.length > CENTS_HISTORY_SIZE) centsHistory.shift();
-                const averagedCents = centsHistory.reduce((a, b) => a + b, 0) / centsHistory.length;
-                updateUINote({ ...noteData, cents: averagedCents });
-            } else {
-                resetUINoteDisplay();
-            }
-            requestAnimationFrame(analysePitch);
-        }
-
-        function getPitchAutoCorrelation(buffer, sampleRate) {
-            const minFreq = 80, maxFreq = 1000;
-            const minPeriod = sampleRate / maxFreq, maxPeriod = sampleRate / minFreq;
-            const n = buffer.length;
-            const autoCorrelation = new Float32Array(n);
-            for (let lag = 0; lag < n; lag++) {
-                let sum = 0;
-                for (let i = 0; i < n - lag; i++) sum += buffer[i] * buffer[i + lag];
-                autoCorrelation[lag] = sum;
-            }
-            let maxVal = -1, peakIndex = -1;
-            for (let i = Math.floor(minPeriod); i < Math.min(n, Math.ceil(maxPeriod)); i++) {
-                if (autoCorrelation[i] > maxVal) { maxVal = autoCorrelation[i]; peakIndex = i; }
-            }
-            if (peakIndex <= 0) return -1;
-            const peak = peakIndex;
-            if (peak > 0 && peak < n - 1) {
-                const y1 = autoCorrelation[peak - 1], y2 = autoCorrelation[peak], y3 = autoCorrelation[peak + 1];
-                const shift = (y1 - y3) / (2 * (y1 - 2 * y2 + y3));
-                if (Math.abs(shift) < 1) return sampleRate / (peak + shift);
-            }
-            return sampleRate / peakIndex;
-        }
-
-        function getNoteData(frequency) {
-            const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
-            const roundedNoteNum = Math.round(noteNum) + 69;
-            const idealFrequency = 440 * Math.pow(2, (roundedNoteNum - 69) / 12);
-            return {
-                name: noteStrings[roundedNoteNum % 12],
-                octave: Math.floor(roundedNoteNum / 12) - 1,
-                cents: 1200 * (Math.log(frequency / idealFrequency) / Math.log(2))
-            };
-        }
-
-        // --- Funções de UI ---
-        function updateUIOnStart() {
-            toggleBtn.classList.add('stop-mode');
-            toggleBtnIcon.className = 'ph-bold ph-stop';
-            toggleBtnText.textContent = 'Parar';
-            tuningComplete = false;
-        }
-
-        function updateUIOnStop() {
-            toggleBtn.classList.remove('stop-mode');
-            toggleBtnIcon.className = 'ph-bold ph-microphone';
-            toggleBtnText.textContent = 'Iniciar';
-            statusMessageEl.textContent = 'Clique em "Iniciar" para começar';
-            resetUINoteDisplay();
-            resetStringButtons();
-            currentStringIndex = 0;
-            tuningComplete = false;
-        }
-
-        function resetUINoteDisplay() {
-            noteNameEl.textContent = '--';
-            noteNameEl.style.color = 'var(--text-color)';
-            needle.style.transform = 'rotate(0deg)';
-            needle.style.backgroundColor = 'var(--primary-color)';
-            if(isRunning && !tuningComplete) {
-                const currentStringKey = tuningSequence[currentStringIndex];
-                const stringInfo = violinStrings[currentStringKey];
-                statusMessageEl.textContent = `Toque a corda ${stringInfo.name} (${currentStringKey})`;
-            }
-        }
-
-        function resetStringButtons() {
-            allStringButtons.forEach(button => {
-                button.classList.remove('active');
-                // Remove todas as classes de cor específicas
-                Object.values(stringColors).forEach(color => {
-                    button.classList.remove(color.base, color.border, color.shadow, 'text-white');
-                });
-                // Adiciona a cor padrão
-                button.classList.add('bg-[#374151]', 'border-[#4B5563]');
-            });
-        }
-
-        function initializeTuningSequence() {
-            stringTunedState = { 'G3': false, 'D4': false, 'A4': false, 'E5': false };
-            resetStringButtons();
-            currentStringIndex = 0;
-            tuningComplete = false;
-            highlightCurrentString();
-        }
-
-        function highlightCurrentString() {
-            allStringButtons.forEach(btn => btn.classList.remove('active'));
-            if (currentStringIndex < tuningSequence.length) {
-                const currentStringKey = tuningSequence[currentStringIndex];
-                stringButtons[currentStringKey].classList.add('active');
-                const stringInfo = violinStrings[currentStringKey];
-                statusMessageEl.textContent = `Afine a corda ${stringInfo.name} (${currentStringKey})`;
-                statusMessageEl.style.color = 'var(--text-muted-color)';
-            } else {
-                statusMessageEl.textContent = 'Violino Afinadíssimo! 🎉';
-                statusMessageEl.style.color = 'var(--green-color)';
-                noteNameEl.textContent = '✓';
-                noteNameEl.style.color = 'var(--green-color)';
-                tuningComplete = true;
-            }
-        }
-        
-        function updateUINote(noteData) {
-            if (tuningComplete) return;
-
-            const currentStringKey = tuningSequence[currentStringIndex];
-            const targetStringData = violinStrings[currentStringKey];
-            
-            noteNameEl.textContent = noteData.name.split('♯')[0];
-
-            const clampedCents = Math.max(-50, Math.min(50, noteData.cents));
-            const rotation = (clampedCents / 50) * 45; // Ângulo máximo de 45 graus
-            needle.style.transform = `rotate(${rotation}deg)`;
-
-            if (noteData.name === targetStringData.name && noteData.octave === targetStringData.octave) {
-                if (Math.abs(clampedCents) < 5) { // Afinada
-                    needle.style.backgroundColor = 'var(--green-color)';
-                    noteNameEl.style.color = 'var(--green-color)';
-                    statusMessageEl.textContent = "Afinado!";
-                    statusMessageEl.style.color = 'var(--green-color)';
-
-                    if (!stringTunedState[currentStringKey]) {
-                        stringTunedState[currentStringKey] = true;
-                        const button = stringButtons[currentStringKey];
-                        const colors = stringColors[currentStringKey];
-                        button.classList.remove('active', 'bg-[#374151]');
-                        button.classList.add(colors.base, 'text-white');
-                        
-                        playTunedSound();
-                        
-                        setTimeout(() => {
-                            currentStringIndex++;
-                            highlightCurrentString();
-                            resetUINoteDisplay();
-                        }, 1200);
-                    }
-                } else { // Perto, mas não afinada
-                    const direction = clampedCents < 0 ? 'Baixo' : 'Alto';
-                    needle.style.backgroundColor = clampedCents < 0 ? 'var(--red-color)' : 'var(--primary-color)';
-                    noteNameEl.style.color = clampedCents < 0 ? 'var(--red-color)' : 'var(--primary-color)';
-                    statusMessageEl.textContent = `Um pouco ${direction} (${clampedCents.toFixed(0)} cents)`;
-                    statusMessageEl.style.color = clampedCents < 0 ? 'var(--red-color)' : 'var(--primary-color)';
-                }
-            } else { // Nota errada
-                needle.style.backgroundColor = 'var(--red-color)';
-                noteNameEl.style.color = 'var(--red-color)';
-                statusMessageEl.textContent = `Nota errada. Toque a corda ${targetStringData.name}`;
-                statusMessageEl.style.color = 'var(--red-color)';
-            }
-        }
-
-        // --- Event Listeners ---
-        toggleBtn.addEventListener('click', toggleTuner);
-        helpBtn.addEventListener('click', () => helpModal.classList.add('visible'));
-        closeModalBtn.addEventListener('click', () => helpModal.classList.remove('visible'));
-        helpModal.addEventListener('click', (e) => {
-            if (e.target === helpModal) helpModal.classList.remove('visible');
-        });
-
-        // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
+            // --- CÓDIGO DO AFINADOR (EXISTENTE) ---
+            const noteNameEl = document.getElementById('note-name');
+            const statusMessageEl = document.getElementById('status-message');
+            const toggleBtn = document.getElementById('toggle-btn');
+            const toggleBtnIcon = toggleBtn.querySelector('i');
+            const toggleBtnText = toggleBtn.querySelector('span');
+            const needle = document.getElementById('needle');
+            const centerLine = document.querySelector('.center-line');
+            const stringButtons = {
+                'G3': document.getElementById('string-G3'),
+                'D4': document.getElementById('string-D4'),
+                'A4': document.getElementById('string-A4'),
+                'E5': document.getElementById('string-E5')
+            };
+            const allStringButtons = document.querySelectorAll('.string-button');
+            const helpBtn = document.getElementById('help-btn');
+            const helpModal = document.getElementById('help-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+
+            let audioContext;
+            let analyser;
+            let mediaStreamSource;
+            let buffer;
+            let isRunning = false;
+            const noteStrings = ["Dó", "Dó♯", "Ré", "Ré♯", "Mi", "Fá", "Fá♯", "Sol", "Sol♯", "Lá", "Lá♯", "Si"];
+            
+            const violinStrings = {
+                'G3': { name: 'Sol', octave: 3, frequency: 195.998 },
+                'D4': { name: 'Ré', octave: 4, frequency: 293.665 },
+                'A4': { name: 'Lá', octave: 4, frequency: 440.000 },
+                'E5': { name: 'Mi', octave: 5, frequency: 659.255 }
+            };
+            
+            const tuningSequence = ['G3', 'D4', 'A4', 'E5'];
+            let currentStringIndex = 0;
+            let stringTunedState = { 'G3': false, 'D4': false, 'A4': false, 'E5': false };
+            let tuningComplete = false;
+
+            const CENTS_HISTORY_SIZE = 5;
+            let centsHistory = [];
+
+            const stringColors = {
+                'G3': { base: 'bg-red-500', border: 'border-red-400', shadow: 'shadow-red-400/50' },
+                'D4': { base: 'bg-yellow-500', border: 'border-yellow-400', shadow: 'shadow-yellow-400/50' },
+                'A4': { base: 'bg-blue-500', border: 'border-blue-400', shadow: 'shadow-blue-400/50' },
+                'E5': { base: 'bg-green-500', border: 'border-green-400', shadow: 'shadow-green-400/50' }
+            };
+
+            function playTunedSound() {
+                if (!audioContext) return;
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                oscillator.start(audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.5); 
+                oscillator.stop(audioContext.currentTime + 0.5);
+            }
+
+            async function toggleTuner() {
+                if (isRunning) {
+                    stopTuner();
+                } else {
+                    await startTuner();
+                }
+            }
+
+            async function startTuner() {
+                try {
+                    if (audioContext && audioContext.state === 'suspended') {
+                        await audioContext.resume();
+                    } else if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false } });
+                    mediaStreamSource = audioContext.createMediaStreamSource(stream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 4096;
+                    buffer = new Float32Array(analyser.fftSize);
+                    mediaStreamSource.connect(analyser);
+                    isRunning = true;
+                    updateUIOnStart();
+                    initializeTuningSequence();
+                    analysePitch();
+                } catch (err) {
+                    console.error('Erro ao aceder ao microfone:', err);
+                    let errorMessage = 'Erro ao aceder ao microfone.';
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        errorMessage = 'Acesso ao microfone negado.';
+                    } else if (err.name === 'NotFoundError') {
+                        errorMessage = 'Nenhum microfone encontrado.';
+                    }
+                    statusMessageEl.textContent = errorMessage;
+                    statusMessageEl.style.color = 'var(--red-color)';
+                }
+            }
+
+            function stopTuner() {
+                if (mediaStreamSource) {
+                    mediaStreamSource.mediaStream.getTracks().forEach(track => track.stop());
+                }
+                if (audioContext && audioContext.state !== 'closed') {
+                    audioContext.suspend();
+                }
+                isRunning = false;
+                updateUIOnStop();
+                centsHistory = [];
+            }
+
+            function analysePitch() {
+                if (!isRunning) return;
+                analyser.getFloatTimeDomainData(buffer);
+                const fundamentalFreq = getPitchAutoCorrelation(buffer, audioContext.sampleRate);
+                if (fundamentalFreq > 0) {
+                    const noteData = getNoteData(fundamentalFreq);
+                    centsHistory.push(noteData.cents);
+                    if (centsHistory.length > CENTS_HISTORY_SIZE) centsHistory.shift();
+                    const averagedCents = centsHistory.reduce((a, b) => a + b, 0) / centsHistory.length;
+                    updateUINote({ ...noteData, cents: averagedCents });
+                } else {
+                    resetUINoteDisplay();
+                }
+                requestAnimationFrame(analysePitch);
+            }
+
+            function getPitchAutoCorrelation(buffer, sampleRate) {
+                const minFreq = 80, maxFreq = 1000;
+                const minPeriod = sampleRate / maxFreq, maxPeriod = sampleRate / minFreq;
+                const n = buffer.length;
+                const autoCorrelation = new Float32Array(n);
+                for (let lag = 0; lag < n; lag++) {
+                    let sum = 0;
+                    for (let i = 0; i < n - lag; i++) sum += buffer[i] * buffer[i + lag];
+                    autoCorrelation[lag] = sum;
+                }
+                let maxVal = -1, peakIndex = -1;
+                for (let i = Math.floor(minPeriod); i < Math.min(n, Math.ceil(maxPeriod)); i++) {
+                    if (autoCorrelation[i] > maxVal) { maxVal = autoCorrelation[i]; peakIndex = i; }
+                }
+                if (peakIndex <= 0) return -1;
+                const peak = peakIndex;
+                if (peak > 0 && peak < n - 1) {
+                    const y1 = autoCorrelation[peak - 1], y2 = autoCorrelation[peak], y3 = autoCorrelation[peak + 1];
+                    const shift = (y1 - y3) / (2 * (y1 - 2 * y2 + y3));
+                    if (Math.abs(shift) < 1) return sampleRate / (peak + shift);
+                }
+                return sampleRate / peakIndex;
+            }
+
+            function getNoteData(frequency) {
+                const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
+                const roundedNoteNum = Math.round(noteNum) + 69;
+                const idealFrequency = 440 * Math.pow(2, (roundedNoteNum - 69) / 12);
+                return {
+                    name: noteStrings[roundedNoteNum % 12],
+                    octave: Math.floor(roundedNoteNum / 12) - 1,
+                    cents: 1200 * (Math.log(frequency / idealFrequency) / Math.log(2))
+                };
+            }
+
+            function updateUIOnStart() {
+                toggleBtn.classList.add('stop-mode');
+                toggleBtnIcon.className = 'ph-bold ph-stop';
+                toggleBtnText.textContent = 'Parar';
+                tuningComplete = false;
+            }
+
+            function updateUIOnStop() {
+                toggleBtn.classList.remove('stop-mode');
+                toggleBtnIcon.className = 'ph-bold ph-microphone';
+                toggleBtnText.textContent = 'Iniciar';
+                statusMessageEl.textContent = 'Clique em "Iniciar" para começar';
+                resetUINoteDisplay();
+                resetStringButtons();
+                currentStringIndex = 0;
+                tuningComplete = false;
+            }
+
+            function resetUINoteDisplay() {
+                noteNameEl.textContent = '--';
+                noteNameEl.style.color = 'var(--text-color)';
+                needle.style.transform = 'rotate(0deg)';
+                needle.style.backgroundColor = 'var(--primary-color)';
+                if(isRunning && !tuningComplete) {
+                    const currentStringKey = tuningSequence[currentStringIndex];
+                    const stringInfo = violinStrings[currentStringKey];
+                    statusMessageEl.textContent = `Toque a corda ${stringInfo.name} (${currentStringKey})`;
+                }
+            }
+
+            function resetStringButtons() {
+                allStringButtons.forEach(button => {
+                    button.classList.remove('active');
+                    Object.values(stringColors).forEach(color => {
+                        button.classList.remove(color.base, color.border, color.shadow, 'text-white');
+                    });
+                    button.classList.add('bg-[#374151]', 'border-[#4B5563]');
+                });
+            }
+
+            function initializeTuningSequence() {
+                stringTunedState = { 'G3': false, 'D4': false, 'A4': false, 'E5': false };
+                resetStringButtons();
+                currentStringIndex = 0;
+                tuningComplete = false;
+                highlightCurrentString();
+            }
+
+            function highlightCurrentString() {
+                allStringButtons.forEach(btn => btn.classList.remove('active'));
+                if (currentStringIndex < tuningSequence.length) {
+                    const currentStringKey = tuningSequence[currentStringIndex];
+                    stringButtons[currentStringKey].classList.add('active');
+                    const stringInfo = violinStrings[currentStringKey];
+                    statusMessageEl.textContent = `Afine a corda ${stringInfo.name} (${currentStringKey})`;
+                    statusMessageEl.style.color = 'var(--text-muted-color)';
+                } else {
+                    statusMessageEl.textContent = 'Violino Afinadíssimo!';
+                    statusMessageEl.style.color = 'var(--green-color)';
+                    noteNameEl.textContent = '✓';
+                    noteNameEl.style.color = 'var(--green-color)';
+                    tuningComplete = true;
+                }
+            }
+            
+            function updateUINote(noteData) {
+                if (tuningComplete) return;
+
+                const currentStringKey = tuningSequence[currentStringIndex];
+                const targetStringData = violinStrings[currentStringKey];
+                
+                noteNameEl.textContent = noteData.name.split('♯')[0];
+
+                const clampedCents = Math.max(-50, Math.min(50, noteData.cents));
+                const rotation = (clampedCents / 50) * 45;
+                needle.style.transform = `rotate(${rotation}deg)`;
+
+                if (noteData.name === targetStringData.name && noteData.octave === targetStringData.octave) {
+                    if (Math.abs(clampedCents) < 5) {
+                        needle.style.backgroundColor = 'var(--green-color)';
+                        noteNameEl.style.color = 'var(--green-color)';
+                        statusMessageEl.textContent = "Afinado!";
+                        statusMessageEl.style.color = 'var(--green-color)';
+
+                        if (!stringTunedState[currentStringKey]) {
+                            stringTunedState[currentStringKey] = true;
+                            const button = stringButtons[currentStringKey];
+                            const colors = stringColors[currentStringKey];
+                            button.classList.remove('active', 'bg-[#374151]');
+                            button.classList.add(colors.base, 'text-white');
+                            
+                            playTunedSound();
+                            
+                            setTimeout(() => {
+                                currentStringIndex++;
+                                highlightCurrentString();
+                                resetUINoteDisplay();
+                            }, 1200);
+                        }
+                    } else {
+                        const direction = clampedCents < 0 ? 'Baixo' : 'Alto';
+                        needle.style.backgroundColor = clampedCents < 0 ? 'var(--red-color)' : 'var(--primary-color)';
+                        noteNameEl.style.color = clampedCents < 0 ? 'var(--red-color)' : 'var(--primary-color)';
+                        statusMessageEl.textContent = `Um pouco ${direction} (${clampedCents.toFixed(0)} cents)`;
+                        statusMessageEl.style.color = clampedCents < 0 ? 'var(--red-color)' : 'var(--primary-color)';
+                    }
+                } else {
+                    needle.style.backgroundColor = 'var(--red-color)';
+                    noteNameEl.style.color = 'var(--red-color)';
+                    statusMessageEl.textContent = `Nota errada. Toque a corda ${targetStringData.name}`;
+                    statusMessageEl.style.color = 'var(--red-color)';
+                }
+            }
+
+            toggleBtn.addEventListener('click', toggleTuner);
+            helpBtn.addEventListener('click', () => helpModal.classList.add('visible'));
+            closeModalBtn.addEventListener('click', () => helpModal.classList.remove('visible'));
+            helpModal.addEventListener('click', (e) => {
+                if (e.target === helpModal) helpModal.classList.remove('visible');
+            });
+
             resetUINoteDisplay();
             resetStringButtons();
+
+            // --- CÓDIGO DAS LISTAS DE AFILIADOS (ATUALIZADO COM SEUS LINKS) ---
+            const affiliateLists = [
+                {
+                    title: "Kit Completo do Iniciante",
+                    description: "Tudo que você precisa para começar a tocar: violino, arco, estojo e mais.",
+                    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_976213-MLB53757853173_022023-O.webp",
+                    affiliateUrl: "https://mercadolivre.com/sec/2dGLDMK"
+                },
+                {
+                    title: "Upgrade de Performance",
+                    description: "Melhore seu som com cordas, arcos e breus de qualidade superior.",
+                    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_603315-MLB49733299778_042022-O.webp",
+                    affiliateUrl: "https://mercadolivre.com/sec/2zUyKrT"
+                },
+                {
+                    title: "Estudo Silencioso",
+                    description: "Pratique a qualquer hora com surdinas e violinos elétricos.",
+                    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_806588-MLB74542422195_022024-O.webp",
+                    affiliateUrl: "https://mercadolivre.com/sec/1ns6oun"
+                },
+                {
+                    title: "Mimos para Violinistas",
+                    description: "Ideias criativas de presentes para quem ama violino, para todos os bolsos.",
+                    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_895471-MLB49320215759_032022-O.webp",
+                    affiliateUrl: "https://mercadolivre.com/sec/2ot8n6T"
+                },
+                {
+                    title: "Kit para Tocar ao Vivo",
+                    description: "Equipamentos essenciais como captadores, microfones e pedais.",
+                    imageUrl: "https://http2.mlstatic.com/D_NQ_NP_909949-MLB74073385418_012024-O.webp",
+                    affiliateUrl: "https://mercadolivre.com/sec/2R1bLjq"
+                }
+            ];
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            function displayRandomLists() {
+                const gridContainer = document.getElementById('recommended-lists-grid');
+                if (!gridContainer) return;
+
+                shuffleArray(affiliateLists);
+                const selectedLists = affiliateLists.slice(0, 3);
+                
+                gridContainer.innerHTML = '';
+
+                selectedLists.forEach(list => {
+                    const cardHtml = `
+                        <a href="${list.affiliateUrl}" target="_blank" rel="noopener noreferrer sponsored" class="list-card block">
+                            <div class="list-card-image-wrapper">
+                                <img src="${list.imageUrl}" alt="${list.title}" class="list-card-image" onerror="this.onerror=null;this.src='https://placehold.co/400x400/111827/E5E7EB?text=Imagem+Indisponível';">
+                            </div>
+                            <div class="list-card-content">
+                                <div>
+                                    <h3 class="font-bold text-base text-white truncate">${list.title}</h3>
+                                    <p class="text-sm text-gray-400 mt-1 mb-4 h-10">${list.description}</p>
+                                </div>
+                                <span class="inline-block w-full text-center bg-sky-500 text-white text-sm font-semibold px-3 py-2 rounded-md hover:bg-sky-600 transition-colors">
+                                    Ver Lista
+                                </span>
+                            </div>
+                        </a>
+                    `;
+                    gridContainer.innerHTML += cardHtml;
+                });
+            }
+
+            // Executa a função para exibir as listas
+            displayRandomLists();
         });
     </script>
 </body>
