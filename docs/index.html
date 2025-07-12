@@ -3,12 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1A202C">
+    
     <title>Afinador de Violino</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+    
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎻</text></svg>">
     <style>
         :root {
@@ -735,6 +741,19 @@
 
             // Executa a função para exibir as listas
             displayRandomLists();
+
+            // --- ADICIONADO: REGISTRO DO SERVICE WORKER ---
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(registration => {
+                            console.log('✅ Service Worker registrado com sucesso:', registration.scope);
+                        })
+                        .catch(error => {
+                            console.error('❌ Falha ao registrar o Service Worker:', error);
+                        });
+                });
+            }
         });
     </script>
 </body>
