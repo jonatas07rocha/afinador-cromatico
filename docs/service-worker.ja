@@ -1,4 +1,4 @@
-const CACHE_NAME = 'violin-tuner-cache-v1';
+#const CACHE_NAME = 'violin-tuner-cache-v1';
 // Lista de arquivos e recursos essenciais para o funcionamento offline.
 const URLS_TO_CACHE = [
     '/',
