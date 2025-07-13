@@ -93,7 +93,3 @@ Agora, para garantir que tudo funcione:
       // ...
     </script>
     ```
-* **🚀 Faça o commit:** Envie as alterações para o seu repositório no GitHub.
-* **🧹 Limpe o cache:** Vá para o seu site, abra as Ferramentas de Programador (F12) > Application > Storage e clique em "Clear site data". Depois, recarregue a página com **Ctrl + F5**.
-
-Após estes passos, o seu PWA deverá instalar-se corretamente e o ícone aparecerá. Você está quase 
