@@ -30,7 +30,7 @@ Afinador online de violino, responsivo e fácil de usar. Desenvolvido como uma P
 
 ## 🚀 Acesse Agora
 
-👉 [**Afinador Online**](https://jonatas07rocha.github.io/afinador-cromatico/)
+👉 [**Afinador Online**](https://afinadordeviolino.vercel.com/)
 
 Ou instale como aplicativo no seu celular acessando via navegador.
 
